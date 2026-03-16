@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>T-Rex Runner</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #f7f7f7;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  canvas {
+    display: block;
+    max-width: 100vw;
+    max-height: 100vh;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+'use strict';
+
+// ── Constants ──
+const CANVAS_WIDTH = 600;
+const CANVAS_HEIGHT = 150;
+const GROUND_Y = 120;
+const GRAVITY = 0.6;
+const JUMP_VELOCITY = -11.5;
+const INITIAL_SPEED = 5;
+const MAX_SPEED = 13;
+const SPEED_INCREMENT = 0.001;
+const MIN_OBSTACLE_GAP = 90;
+const NIGHT_CYCLE_SCORE = 700;
+const NIGHT_TRANSITION_FRAMES = 60;
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+canvas.width = CANVAS_WIDTH;
+canvas.height = CANVAS_HEIGHT;
+
+// ── Sprite Drawing Helpers ──
+function drawPixels(ctx, pixels, x, y, scale, color) {
+  ctx.fillStyle = color;
+  for (const [px, py, w, h] of pixels) {
+    ctx.fillRect(x + px * scale, y + py * scale, (w || 1) * scale, (h || 1) * scale);
+  }
+}
+
+// ── Sprite Data (pixel art as [x, y, w?, h?] arrays) ──
+const SPRITES = {
+  dinoBody: [
+    // Head
+    [8,0,5,1],[6,1,9,1],[6,2,9,1],[6,3,9,1],
+    [6,4,3,1],[10,4,5,1],[6,5,10,1],
+    [5,6,6,1],[7,7,3,1],
+    // Body
+    [1,8,1,1],[3,8,9,1],[0,9,2,1],[3,9,9,1],
+    [0,10,12,1],[1,11,10,1],[2,12,8,1],
+    [3,13,6,1],[4,14,4,1],
+  ],
+  dinoEye: [[12, 2, 2, 2]],
+  dinoLeg1Left: [[4,15,1,2],[5,15,1,1],[8,15,1,2],[9,15,1,1]],
+  dinoLeg1Right: [[4,15,1,1],[5,15,1,2],[8,15,1,1],[9,15,1,2]],
+  dinoDuckBody: [
+    // Ducking body (wider, shorter)
+    [14,0,5,1],[12,1,9,1],[12,2,9,1],[12,3,9,1],
+    [12,4,3,1],[16,4,5,1],[12,5,10,1],
+    [11,6,6,1],[13,7,3,1],
+    [0,8,16,1],[0,9,16,1],[1,10,14,1],
+    [2,11,10,1],
+  ],
+  dinoDuckLeg1: [[4,12,1,2],[5,12,1,1],[8,12,1,2],[9,12,1,1]],
+  dinoDuckLeg2: [[4,12,1,1],[5,12,1,2],[8,12,1,1],[9,12,1,2]],
+  cactusSmall: [
+    [2,0,1,6],[3,0,1,1],[1,1,1,4],[0,3,1,3],[3,3,1,3],[4,3,1,1],
+    [1,6,3,1],[2,6,1,3],
+  ],
+  cactusLarge: [
+    [3,0,2,10],[5,0,1,1],[2,1,1,5],[1,3,1,5],[0,5,1,4],
+    [5,3,1,5],[6,5,1,4],[7,5,1,1],
+    [2,10,4,1],[3,10,2,2],
+  ],
+  cactusDouble: [
+    // Left cactus
+    [2,2,1,8],[3,0,1,1],[1,3,1,4],[0,4,1,4],[3,4,1,4],[4,4,1,1],
+    // Right cactus
+    [7,1,1,9],[8,0,1,1],[6,2,1,5],[5,4,1,4],[8,3,1,5],[9,4,1,1],
+    [2,10,6,1],[3,10,4,2],
+  ],
+  ptero1: [
+    // Wing up
+    [3,0,1,1],[2,1,2,1],[1,2,3,1],[0,3,7,1],[1,4,5,1],[2,5,2,1],
+  ],
+  ptero2: [
+    // Wing down
+    [1,0,5,1],[2,1,2,1],[0,2,7,1],[1,3,3,1],[2,4,2,1],[3,5,1,1],
+  ],
+  restart: [
+    [4,0,4,1],[2,1,2,1],[6,1,2,1],[8,1,1,1],
+    [1,2,1,1],[7,2,1,1],[8,2,1,1],[9,2,1,1],
+    [0,3,1,1],[8,3,1,1],[9,3,1,1],
+    [0,4,1,1],[8,4,1,1],[9,4,1,1],
+    [0,5,1,1],[8,5,1,1],
+    [1,6,1,1],[7,6,1,1],
+    [2,7,2,1],[6,7,2,1],
+    [4,8,4,1],
+    // Arrow
+    [6,2,1,1],[7,3,1,1],[5,4,3,1],
+  ],
+  moon: [
+    [3,0,3,1],[1,1,2,1],[5,1,1,1],[0,2,2,1],
+    [0,3,1,1],[0,4,2,1],[1,5,2,1],[3,6,3,1],
+  ],
+  star: [[0,0,1,1],[1,1,1,1],[0,2,1,1]],
+};
+
+// ── Dino Class ──
+class Dino {
+  constructor() {
+    this.x = 25;
+    this.y = GROUND_Y;
+    this.width = 15;
+    this.height = 17;
+    this.ducking = false;
+    this.jumping = false;
+    this.vy = 0;
+    this.frame = 0;
+    this.frameTimer = 0;
+    this.scale = 2.5;
+    this.blinkTimer = 0;
+  }
+
+  get hitbox() {
+    if (this.ducking) {
+      return {
+        x: this.x + 4,
+        y: this.y - 12 * this.scale / 2.5,
+        w: 18 * this.scale / 2.5 - 4,
+        h: 12 * this.scale / 2.5,
+      };
+    }
+    return {
+      x: this.x + 4,
+      y: this.y - this.height * this.scale / 2.5,
+      w: this.width * this.scale / 2.5 - 4,
+      h: this.height * this.scale / 2.5,
+    };
+  }
+
+  jump() {
+    if (!this.jumping) {
+      this.jumping = true;
+      this.vy = JUMP_VELOCITY;
+      this.ducking = false;
+    }
+  }
+
+  duck(active) {
+    if (this.jumping) {
+      if (active) this.vy = Math.max(this.vy, 4);
+      return;
+    }
+    this.ducking = active;
+  }
+
+  update() {
+    if (this.jumping) {
+      this.vy += GRAVITY;
+      this.y += this.vy;
+      if (this.y >= GROUND_Y) {
+        this.y = GROUND_Y;
+        this.jumping = false;
+        this.vy = 0;
+      }
+    }
+    this.frameTimer++;
+    if (this.frameTimer > 6) {
+      this.frameTimer = 0;
+      this.frame = 1 - this.frame;
+    }
+  }
+
+  draw(ctx, color) {
+    const s = this.scale;
+    const drawY = this.ducking
+      ? this.y - 12 * s / 2.5
+      : this.y - this.height * s / 2.5;
+
+    if (this.ducking) {
+      drawPixels(ctx, SPRITES.dinoDuckBody, this.x, drawY, s / 2.5, color);
+      const legSprite = this.frame === 0 ? SPRITES.dinoDuckLeg1 : SPRITES.dinoDuckLeg2;
+      drawPixels(ctx, legSprite, this.x, drawY, s / 2.5, color);
+    } else {
+      drawPixels(ctx, SPRITES.dinoBody, this.x, drawY, s / 2.5, color);
+      if (!this.jumping) {
+        const legSprite = this.frame === 0 ? SPRITES.dinoLeg1Left : SPRITES.dinoLeg1Right;
+        drawPixels(ctx, legSprite, this.x, drawY, s / 2.5, color);
+      } else {
+        drawPixels(ctx, SPRITES.dinoLeg1Left, this.x, drawY, s / 2.5, color);
+      }
+    }
+  }
+}
+
+// ── Obstacle Class ──
+class Obstacle {
+  constructor(type, x, speed) {
+    this.x = x;
+    this.type = type; // 'cactusSmall', 'cactusLarge', 'cactusDouble', 'ptero'
+    this.frame = 0;
+    this.frameTimer = 0;
+    this.scale = 2.5;
+    this.speed = speed;
+
+    if (type === 'cactusSmall') {
+      this.width = 5 * this.scale / 2.5;
+      this.height = 9 * this.scale / 2.5;
+      this.y = GROUND_Y;
+    } else if (type === 'cactusLarge') {
+      this.width = 8 * this.scale / 2.5;
+      this.height = 12 * this.scale / 2.5;
+      this.y = GROUND_Y;
+    } else if (type === 'cactusDouble') {
+      this.width = 10 * this.scale / 2.5;
+      this.height = 12 * this.scale / 2.5;
+      this.y = GROUND_Y;
+    } else if (type === 'ptero') {
+      this.width = 7 * this.scale / 2.5;
+      this.height = 6 * this.scale / 2.5;
+      const heights = [GROUND_Y, GROUND_Y - 25, GROUND_Y - 45];
+      this.y = heights[Math.floor(Math.random() * heights.length)];
+    }
+  }
+
+  get hitbox() {
+    if (this.type === 'ptero') {
+      return {
+        x: this.x + 2,
+        y: this.y - this.height + 2,
+        w: this.width - 4,
+        h: this.height - 4,
+      };
+    }
+    return {
+      x: this.x + 2,
+      y: this.y - this.height,
+      w: this.width - 4,
+      h: this.height,
+    };
+  }
+
+  update() {
+    this.x -= this.speed;
+    if (this.type === 'ptero') {
+      this.frameTimer++;
+      if (this.frameTimer > 10) {
+        this.frameTimer = 0;
+        this.frame = 1 - this.frame;
+      }
+    }
+  }
+
+  draw(ctx, color) {
+    const s = this.scale;
+    const drawY = this.y - this.height;
+
+    if (this.type === 'cactusSmall') {
+      drawPixels(ctx, SPRITES.cactusSmall, this.x, drawY, s / 2.5, color);
+    } else if (this.type === 'cactusLarge') {
+      drawPixels(ctx, SPRITES.cactusLarge, this.x, drawY, s / 2.5, color);
+    } else if (this.type === 'cactusDouble') {
+      drawPixels(ctx, SPRITES.cactusDouble, this.x, drawY, s / 2.5, color);
+    } else if (this.type === 'ptero') {
+      const sprite = this.frame === 0 ? SPRITES.ptero1 : SPRITES.ptero2;
+      drawPixels(ctx, sprite, this.x, drawY, s / 2.5, color);
+    }
+  }
+}
+
+// ── Ground Class ──
+class Ground {
+  constructor() {
+    this.segments = [];
+    this.offset = 0;
+    // Generate ground bumps
+    for (let i = 0; i < CANVAS_WIDTH + 40; i += 2) {
+      this.segments.push(Math.random() < 0.15 ? 1 : 0);
+    }
+  }
+
+  update(speed) {
+    this.offset += speed;
+    while (this.offset >= 2) {
+      this.offset -= 2;
+      this.segments.shift();
+      this.segments.push(Math.random() < 0.15 ? 1 : 0);
+    }
+  }
+
+  draw(ctx, color) {
+    ctx.fillStyle = color;
+    // Main ground line
+    ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 1);
+    // Bumps
+    for (let i = 0; i < this.segments.length; i++) {
+      if (this.segments[i]) {
+        const bx = i * 2 - this.offset;
+        if (bx >= 0 && bx < CANVAS_WIDTH) {
+          ctx.fillRect(bx, GROUND_Y + 2 + Math.floor(Math.random() * 3), 1, 1);
+        }
+      }
+    }
+  }
+}
+
+// ── Cloud Class ──
+class Cloud {
+  constructor(x, y) {
+    this.x = x || CANVAS_WIDTH + Math.random() * 100;
+    this.y = y || 15 + Math.random() * 40;
+    this.width = 30 + Math.random() * 20;
+    this.speed = 0.5 + Math.random() * 0.5;
+  }
+
+  update() {
+    this.x -= this.speed;
+  }
+
+  draw(ctx, color) {
+    ctx.fillStyle = color;
+    const w = this.width;
+    const h = w * 0.35;
+    // Simple cloud shape
+    ctx.fillRect(this.x + w * 0.15, this.y, w * 0.7, h * 0.5);
+    ctx.fillRect(this.x, this.y + h * 0.3, w, h * 0.4);
+    ctx.fillRect(this.x + w * 0.1, this.y + h * 0.5, w * 0.8, h * 0.3);
+  }
+}
+
+// ── NightMode Class ──
+class NightMode {
+  constructor() {
+    this.active = false;
+    this.opacity = 0;
+    this.moonX = CANVAS_WIDTH - 60;
+    this.moonY = 20;
+    this.stars = [];
+    for (let i = 0; i < 5; i++) {
+      this.stars.push({
+        x: 50 + Math.random() * (CANVAS_WIDTH - 100),
+        y: 10 + Math.random() * 40,
+      });
+    }
+    this.phase = 0; // moon phase 0-5
+  }
+
+  update(score) {
+    const cycle = Math.floor(score / NIGHT_CYCLE_SCORE);
+    const shouldBeNight = cycle % 2 === 1;
+
+    if (shouldBeNight && !this.active) {
+      this.active = true;
+      this.phase = (this.phase + 1) % 6;
+      // Regenerate stars
+      for (let i = 0; i < this.stars.length; i++) {
+        this.stars[i].x = 50 + Math.random() * (CANVAS_WIDTH - 100);
+        this.stars[i].y = 10 + Math.random() * 40;
+      }
+    } else if (!shouldBeNight && this.active) {
+      this.active = false;
+    }
+
+    const target = this.active ? 1 : 0;
+    this.opacity += (target - this.opacity) * (1 / NIGHT_TRANSITION_FRAMES);
+    if (Math.abs(this.opacity - target) < 0.01) this.opacity = target;
+  }
+
+  getColors() {
+    const t = this.opacity;
+    const bg = lerpColor([247, 247, 247], [32, 33, 36], t);
+    const fg = lerpColor([83, 83, 83], [200, 200, 200], t);
+    return {
+      bg: `rgb(${bg[0]},${bg[1]},${bg[2]})`,
+      fg: `rgb(${fg[0]},${fg[1]},${fg[2]})`,
+      cloudFg: `rgba(${fg[0]},${fg[1]},${fg[2]},0.3)`,
+    };
+  }
+
+  draw(ctx, color) {
+    if (this.opacity < 0.01) return;
+    ctx.globalAlpha = this.opacity;
+
+    // Moon
+    const ms = 2;
+    drawPixels(ctx, SPRITES.moon, this.moonX, this.moonY, ms, color);
+
+    // Stars
+    for (const star of this.stars) {
+      drawPixels(ctx, SPRITES.star, star.x, star.y, 2, color);
+    }
+
+    ctx.globalAlpha = 1;
+  }
+}
+
+function lerpColor(a, b, t) {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t),
+  ];
+}
+
+// ── Score Class ──
+class Score {
+  constructor() {
+    this.value = 0;
+    this.highScore = parseInt(localStorage.getItem('dinoHighScore') || '0', 10);
+    this.flashTimer = 0;
+    this.flashVisible = true;
+  }
+
+  update() {
+    const prev = Math.floor(this.value);
+    this.value += 0.1;
+    const curr = Math.floor(this.value);
+
+    // 100점 단위 플래시 효과
+    if (Math.floor(prev / 100) !== Math.floor(curr / 100) && curr > 0) {
+      this.flashTimer = 30;
+    }
+
+    if (this.flashTimer > 0) {
+      this.flashTimer--;
+      this.flashVisible = Math.floor(this.flashTimer / 3) % 2 === 0;
+    } else {
+      this.flashVisible = true;
+    }
+  }
+
+  save() {
+    if (Math.floor(this.value) > this.highScore) {
+      this.highScore = Math.floor(this.value);
+      localStorage.setItem('dinoHighScore', String(this.highScore));
+    }
+  }
+
+  draw(ctx, color) {
+    ctx.fillStyle = color;
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'right';
+
+    // High score
+    if (this.highScore > 0) {
+      ctx.fillText('HI ' + String(this.highScore).padStart(5, '0'), CANVAS_WIDTH - 80, 15);
+    }
+
+    // Current score
+    if (this.flashVisible) {
+      ctx.fillText(String(Math.floor(this.value)).padStart(5, '0'), CANVAS_WIDTH - 10, 15);
+    }
+  }
+}
+
+// ── Collision Detection ──
+function checkCollision(a, b) {
+  return (
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+  );
+}
+
+// ── Game Class ──
+class Game {
+  constructor() {
+    this.state = 'idle'; // 'idle', 'playing', 'gameover'
+    this.dino = new Dino();
+    this.ground = new Ground();
+    this.obstacles = [];
+    this.clouds = [];
+    this.nightMode = new NightMode();
+    this.score = new Score();
+    this.speed = INITIAL_SPEED;
+    this.obstacleTimer = 0;
+    this.cloudTimer = 0;
+    this.gameOverDelay = 0;
+
+    // Pre-populate clouds
+    for (let i = 0; i < 3; i++) {
+      this.clouds.push(new Cloud(100 + i * 200, 15 + Math.random() * 40));
+    }
+
+    this.bindEvents();
+    this.loop();
+  }
+
+  bindEvents() {
+    const handleAction = (action) => {
+      if (action === 'jump') {
+        if (this.state === 'idle') {
+          this.start();
+        } else if (this.state === 'gameover') {
+          if (this.gameOverDelay <= 0) this.restart();
+        } else {
+          this.dino.jump();
+        }
+      }
+      if (action === 'duckStart' && this.state === 'playing') {
+        this.dino.duck(true);
+      }
+      if (action === 'duckEnd' && this.state === 'playing') {
+        this.dino.duck(false);
+      }
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        handleAction('jump');
+      }
+      if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        handleAction('duckStart');
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'ArrowDown') {
+        handleAction('duckEnd');
+      }
+    });
+
+    // Touch support
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const y = touch.clientY - rect.top;
+      if (y > rect.height * 0.6) {
+        handleAction('duckStart');
+      } else {
+        handleAction('jump');
+      }
+    });
+
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleAction('duckEnd');
+    });
+
+    // Responsive canvas
+    window.addEventListener('resize', () => this.resize());
+    this.resize();
+  }
+
+  resize() {
+    const maxW = window.innerWidth * 0.95;
+    const maxH = window.innerHeight * 0.8;
+    const ratio = CANVAS_WIDTH / CANVAS_HEIGHT;
+
+    let w = maxW;
+    let h = w / ratio;
+    if (h > maxH) {
+      h = maxH;
+      w = h * ratio;
+    }
+
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+  }
+
+  start() {
+    this.state = 'playing';
+    this.dino.jump();
+  }
+
+  restart() {
+    this.state = 'playing';
+    this.dino = new Dino();
+    this.obstacles = [];
+    this.speed = INITIAL_SPEED;
+    this.score = new Score();
+    this.score.highScore = parseInt(localStorage.getItem('dinoHighScore') || '0', 10);
+    this.obstacleTimer = 0;
+    this.ground = new Ground();
+    this.nightMode = new NightMode();
+    this.dino.jump();
+  }
+
+  spawnObstacle() {
+    const types = ['cactusSmall', 'cactusLarge', 'cactusDouble'];
+    // Pterodactyls after score 200
+    if (Math.floor(this.score.value) > 200) {
+      types.push('ptero');
+    }
+    const type = types[Math.floor(Math.random() * types.length)];
+    this.obstacles.push(new Obstacle(type, CANVAS_WIDTH + 10, this.speed));
+  }
+
+  update() {
+    if (this.state === 'gameover') {
+      if (this.gameOverDelay > 0) this.gameOverDelay--;
+      return;
+    }
+    if (this.state !== 'playing') return;
+
+    // Speed up
+    if (this.speed < MAX_SPEED) {
+      this.speed += SPEED_INCREMENT;
+    }
+
+    this.dino.update();
+    this.ground.update(this.speed);
+    this.score.update();
+    this.nightMode.update(Math.floor(this.score.value));
+
+    // Obstacles
+    this.obstacleTimer++;
+    const minGap = Math.max(MIN_OBSTACLE_GAP - this.speed * 3, 40);
+    if (this.obstacleTimer > minGap + Math.random() * 40) {
+      this.spawnObstacle();
+      this.obstacleTimer = 0;
+    }
+
+    for (const obs of this.obstacles) {
+      obs.speed = this.speed;
+      obs.update();
+    }
+    this.obstacles = this.obstacles.filter((o) => o.x > -50);
+
+    // Clouds
+    this.cloudTimer++;
+    if (this.cloudTimer > 120 + Math.random() * 80) {
+      this.clouds.push(new Cloud());
+      this.cloudTimer = 0;
+    }
+    for (const cloud of this.clouds) cloud.update();
+    this.clouds = this.clouds.filter((c) => c.x > -60);
+
+    // Collision
+    const dinoHB = this.dino.hitbox;
+    for (const obs of this.obstacles) {
+      if (checkCollision(dinoHB, obs.hitbox)) {
+        this.gameOver();
+        return;
+      }
+    }
+  }
+
+  gameOver() {
+    this.state = 'gameover';
+    this.score.save();
+    this.gameOverDelay = 20; // Prevent instant restart
+  }
+
+  draw() {
+    const colors = this.nightMode.getColors();
+
+    // Background
+    ctx.fillStyle = colors.bg;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    document.body.style.background = colors.bg;
+
+    // Night elements (moon, stars)
+    this.nightMode.draw(ctx, colors.fg);
+
+    // Clouds
+    for (const cloud of this.clouds) cloud.draw(ctx, colors.cloudFg);
+
+    // Ground
+    this.ground.draw(ctx, colors.fg);
+
+    // Obstacles
+    for (const obs of this.obstacles) obs.draw(ctx, colors.fg);
+
+    // Dino
+    this.dino.draw(ctx, colors.fg);
+
+    // Score
+    this.score.draw(ctx, colors.fg);
+
+    // Idle screen
+    if (this.state === 'idle') {
+      ctx.fillStyle = colors.fg;
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('PRESS SPACE TO START', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+      ctx.font = '9px monospace';
+      ctx.fillText('or tap the screen', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 5);
+    }
+
+    // Game over screen
+    if (this.state === 'gameover') {
+      ctx.fillStyle = colors.fg;
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('G A M E  O V E R', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 15);
+
+      // Restart icon
+      const rx = CANVAS_WIDTH / 2 - 12;
+      const ry = CANVAS_HEIGHT / 2;
+      drawPixels(ctx, SPRITES.restart, rx, ry, 2.2, colors.fg);
+    }
+  }
+
+  loop() {
+    this.update();
+    this.draw();
+    requestAnimationFrame(() => this.loop());
+  }
+}
+
+// ── Start ──
+new Game();
+</script>
+</body>
+</html>
