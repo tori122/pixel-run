@@ -1,0 +1,11 @@
+export const CANVAS_WIDTH = 600;
+export const CANVAS_HEIGHT = 150;
+export const GROUND_Y = 120;
+export const GRAVITY = 0.6;
+export const JUMP_VELOCITY = -11.5;
+export const INITIAL_SPEED = 5;
+export const MAX_SPEED = 13;
+export const SPEED_INCREMENT = 0.001;
+export const MIN_OBSTACLE_GAP = 90;
+export const NIGHT_CYCLE_SCORE = 700;
+export const NIGHT_TRANSITION_FRAMES = 60;
