@@ -12,6 +12,8 @@
 - 각 Step은 **이전 Step의 context 없이도** 독립적으로 수행 가능하도록 작성한다.
 - 각 Step에는 **수정/생성 대상 파일**, **참고 파일**, **완료 조건**을 명시한다.
 - 열린 결정 사항은 해당 Step 시작 전 확정한다.
+- **각 Step 완료 후 게임이 정상 동작해야 한다** (화면 깨짐, 콘솔 에러 없음).
+- **Additive first**: 새 코드를 추가한 뒤, 기존 코드는 모든 소비자가 전환된 후에 제거한다.
 
 ---
 
@@ -21,17 +23,18 @@
 
 ### Step 1-1: SpriteLoader + placeholder 시스템
 
-**목표**: 서버에서 이미지를 로드하고, 이미지가 없을 때 컬러 박스 placeholder로 렌더링하는 시스템 구축.
+**목표**: 서버에서 이미지를 로드하고, 이미지가 없을 때 컬러 박스 placeholder로 렌더링하는 시스템 구축. **기존 렌더링은 유지한다.**
 
 **생성 파일**:
-- `frontend/assets/sprites/sprite-config.json` — 스프라이트 메타데이터 (크기, hitbox, 파일명)
+- `frontend/assets/sprite-config.json` — 스프라이트 메타데이터 (크기, hitbox, 파일명)
 - `frontend/js/SpriteLoader.js` — 이미지 preload + placeholder 관리
 
 **수정 파일**:
-- `frontend/js/utils.js` — `drawPixels()` 제거, `drawPlaceholder(ctx, x, y, w, h, label)` 추가
+- `frontend/js/utils.js` — `drawPlaceholder(ctx, x, y, w, h, label)` **추가** (drawPixels는 유지)
+- `frontend/js/Game.js` — SpriteLoader import + init 호출 (fire-and-forget)
 
 **참고 파일**:
-- `frontend/js/sprites.js` — 현재 픽셀아트 구조 (제거 대상, 구조 참고용)
+- `frontend/js/sprites.js` — 현재 픽셀아트 구조 (이 Step에서 건드리지 않음)
 - `frontend/js/config.js` — 현재 설정 구조
 - `promo-dino-game-dev.md` §3 "커스텀 스프라이트 시스템 구현" — `sprite-config.json` 전체 스키마, placeholder 렌더링 방식
 
@@ -39,20 +42,24 @@
 1. `sprite-config.json` 작성 — dev 문서 §3의 JSON 스키마 그대로 사용
 2. `SpriteLoader.js` 작성:
    - `sprite-config.json`을 fetch하여 메타데이터 로드
-   - 각 스프라이트 키에 대해 `GET /sprites/:key`로 이미지 로드 시도
-   - `new Image()` + `Promise.all`로 전체 preload
-   - 로드 실패 시 해당 키를 placeholder 맵에 등록
+   - 각 스프라이트 키에 대해 이미지 로드 시도 (`new Image()` + `Promise.all`)
+   - 로드 실패 시 해당 키를 placeholder 맵에 등록 (에러가 아닌 정상 흐름)
    - `getImage(key)` — 로드된 Image 객체 반환, 없으면 null
    - `getSize(key)` — config에서 크기 정보 반환
    - `isLoaded()` — 전체 preload 완료 여부
+   - `export const spriteLoader = new SpriteLoader()` 싱글턴 export
 3. `utils.js` 수정:
-   - `drawPixels()` 함수 제거
-   - `drawPlaceholder(ctx, x, y, w, h, label)` 추가 — 반투명 컬러 박스 + 중앙 라벨 텍스트
+   - `drawPlaceholder(ctx, x, y, w, h, label)` **추가** — 반투명 컬러 박스 + 중앙 라벨 텍스트
+   - ⚠️ `drawPixels()`는 **제거하지 않는다** (Dino/Obstacle/NightMode/Game이 아직 사용 중)
+4. `Game.js` 수정:
+   - `import { spriteLoader } from './SpriteLoader.js';` 추가
+   - constructor에서 `spriteLoader.init().catch(console.warn)` fire-and-forget 호출
 
 **완료 조건**:
 - [ ] `SpriteLoader`가 config를 파싱하고 preload를 시도할 수 있다
-- [ ] 서버 이미지 없이도 placeholder 크기/라벨이 정상 렌더링된다
-- [ ] `drawPixels()` 제거, `drawPlaceholder()` 동작 확인
+- [ ] 서버 이미지 없이도 placeholder 크기/라벨이 정상 렌더링된다 (콘솔에서 수동 테스트)
+- [ ] **게임이 기존 픽셀아트로 정상 플레이된다** (화면 깨짐 없음)
+- [ ] 콘솔에서 SpriteLoader 초기화 로그 확인 가능
 
 **열린 결정**: 없음
 
@@ -74,7 +81,7 @@
 1. 상태 enum 정의: `LOADING`, `INTRO`, `PLAYING`, `GAMEOVER`, `HAPPYENDING`
 2. `LOADING` 상태 추가:
    - SpriteLoader의 preload 완료를 기다림
-   - 완료 시 `INTRO`로 전환
+   - ⚠️ 성공/실패 **모두** `INTRO`로 전환 (이미지 로드 실패해도 게임 진행 가능)
 3. `INTRO` 상태 추가:
    - 입력 리스닝 시작 (Space/Tap)
    - 입력 시 `PLAYING`으로 전환
@@ -91,8 +98,10 @@
 
 **완료 조건**:
 - [ ] `loading → intro → playing → gameover → playing` 전환이 동작한다
+- [ ] 이미지 로드 실패 시에도 LOADING → INTRO 전환이 정상 진행된다
 - [ ] 각 상태에서 의도하지 않은 입력이 무시된다
 - [ ] happyending 상태가 선언되어 있다 (빈 상태)
+- [ ] **게임 플레이가 정상 동작한다**
 
 **열린 결정**: 없음
 
@@ -130,6 +139,7 @@
 - [ ] preload 완료 후 "PRESS SPACE TO START" 텍스트가 나타난다
 - [ ] Space/Tap 입력 시 타이틀이 아래로 떨어지고 캐릭터가 좌측에서 등장한다
 - [ ] EXEPixelPerfect 폰트가 적용되어 있다
+- [ ] **시작 연출 후 게임 플레이가 정상 동작한다**
 
 **열린 결정**:
 - 폰트 라이선스 확인 필요 (EXEPixelPerfect 사용 확정 여부)
@@ -146,10 +156,10 @@
 **참고 파일**:
 - `frontend/js/Dino.js` — 현재 캐릭터 로직 (hitbox, 상태별 스프라이트 전환)
 - `frontend/js/SpriteLoader.js` — Step 1-1에서 작성한 이미지 로더
-- `frontend/assets/sprites/sprite-config.json` — dino 섹션 (size, hitbox, duckSize, duckHitbox)
+- `frontend/assets/sprite-config.json` — dino 섹션 (size, hitbox, duckSize, duckHitbox)
 
 **작업 내용**:
-1. 기존 `sprites.js` 기반 렌더링 코드 제거
+1. 기존 `sprites.js` 기반 렌더링 코드 제거 (Dino.js에서의 import만 제거)
 2. SpriteLoader에서 dino 이미지 로드:
    - run: `dino-run-1`, `dino-run-2` (2프레임 루프)
    - duck: `dino-duck-1`, `dino-duck-2` (2프레임 루프)
@@ -166,6 +176,7 @@
 - [ ] run/duck/jump 상태별로 다른 placeholder 라벨이 표시된다
 - [ ] hitbox가 config 기반으로 동작한다
 - [ ] 2프레임 루프 애니메이션이 동작한다
+- [ ] **점프, 엎드리기, 충돌 등 게임 플레이가 정상 동작한다**
 
 **열린 결정**: 없음
 
@@ -180,10 +191,10 @@
 
 **참고 파일**:
 - `frontend/js/Obstacle.js` — 현재 장애물 로직 (타입별 분기, 스폰 간격)
-- `frontend/assets/sprites/sprite-config.json` — obstacles, flyingObstacles 섹션
+- `frontend/assets/sprite-config.json` — obstacles, flyingObstacles 섹션
 
 **작업 내용**:
-1. 기존 선인장/익룡 픽셀아트 렌더링 제거
+1. 기존 선인장/익룡 픽셀아트 렌더링 제거 (Obstacle.js에서의 sprites.js import만 제거)
 2. `sprite-config.json`의 obstacles 배열 기반으로 5종 지면 장애물 구현:
    - 각 장애물별 size, hitbox 적용
    - 2프레임 루프 애니메이션
@@ -196,54 +207,113 @@
 - [ ] 비행 장애물이 공중 높이에서 등장한다
 - [ ] 각 장애물별 hitbox가 config 기반으로 동작한다
 - [ ] placeholder 렌더링이 장애물별로 다른 라벨을 표시한다
+- [ ] **충돌 판정, 게임오버 등 게임 플레이가 정상 동작한다**
 
 **열린 결정**:
 - 장애물 등장 패턴 (5종의 등장 순서/빈도/조합 규칙) — 기본은 랜덤, 커스텀 규칙 필요 시 확정
 
 ---
 
-### Step 1-6: Ground 이미지 타일 + sprites.js 제거 + 점프 입력 확장
+### Step 1-6: Ground 이미지 타일 전환
 
-**목표**: 지면 렌더링 전환, 레거시 코드 정리, 점프 입력 영역 확장.
+**목표**: 지면 렌더링을 이미지 기반 타일로 전환.
 
 **수정 파일**:
 - `frontend/js/Ground.js` — 이미지 타일 렌더링 전환
-- `frontend/js/Game.js` — 점프 입력 영역을 페이지 전체로 확장
-- `frontend/js/config.js` — 스프라이트 경로 설정 정리
-
-**삭제 파일**:
-- `frontend/js/sprites.js` — 픽셀아트 데이터 전체 제거
 
 **참고 파일**:
 - `frontend/js/Ground.js` — 현재 지면 로직
-- `frontend/assets/sprites/sprite-config.json` — ground 섹션 (2400x24, tileWidth)
-- `frontend/js/Game.js` — 현재 입력 처리 코드
+- `frontend/assets/sprite-config.json` — ground 섹션 (2400x24, tileWidth)
 
 **작업 내용**:
 1. `Ground.js` 수정:
+   - SpriteLoader에서 ground 이미지 로드
    - 이미지 있으면 `drawImage`로 타일 렌더링 (가로 반복 스크롤)
-   - 없으면 `drawPlaceholder`로 가로 줄 표시
+   - 없으면 기존 fillRect 방식 유지 (placeholder)
    - ground 크기: 2400x24, tileWidth: 2400
-2. `sprites.js` 삭제:
-   - 파일 삭제
-   - 모든 import/require 참조 정리 (Game.js, Dino.js, Obstacle.js 등)
-3. `Game.js` 수정:
-   - 점프 입력: canvas 영역 → `document` 레벨 이벤트 리스너로 변경
-   - Space, ArrowUp, 터치(touchstart) 모두 페이지 전체에서 동작
-4. `config.js` 수정:
-   - 기존 스프라이트 경로 설정을 SpriteLoader 기반으로 정리
 
 **완료 조건**:
 - [ ] 지면이 placeholder 또는 이미지로 타일 렌더링된다
-- [ ] `sprites.js` 파일이 삭제되고 참조 에러가 없다
-- [ ] 페이지 어디를 클릭/탭해도 점프가 동작한다
-- [ ] 기존 게임 플레이가 정상 동작한다
+- [ ] 스크롤이 정상 동작한다
+- [ ] **게임 플레이가 정상 동작한다**
 
 **열린 결정**: 없음
 
 ---
 
-### Step 1-7: Score 50점 단위 + 반응형 canvas
+### Step 1-7: NightMode + restart 전환 → sprites.js 삭제 + drawPixels 제거
+
+**목표**: sprites.js의 마지막 소비자(NightMode, Game.js restart)를 전환한 뒤, sprites.js와 drawPixels를 안전하게 제거.
+
+> ⚠️ 이 Step 시작 시점에 sprites.js를 사용하는 파일은 NightMode.js(moon, star)와 Game.js(restart)뿐이다.
+> Step 1-4에서 Dino.js, Step 1-5에서 Obstacle.js가 이미 전환되었으므로 이 Step에서 나머지를 전환하고 삭제한다.
+
+**수정 파일**:
+- `frontend/js/NightMode.js` — moon/star를 SpriteLoader 기반 or canvas 직접 렌더링으로 전환
+- `frontend/js/Game.js` — restart 아이콘을 SpriteLoader 기반 or canvas 직접 렌더링으로 전환, sprites.js import 제거
+- `frontend/js/utils.js` — `drawPixels()` 제거
+
+**삭제 파일**:
+- `frontend/js/sprites.js` — 픽셀아트 데이터 전체 제거
+
+**참고 파일**:
+- `frontend/js/NightMode.js` — 현재 moon/star 렌더링 (drawPixels 사용)
+- `frontend/js/Game.js` — 현재 restart 아이콘 렌더링 (drawPixels 사용)
+- `frontend/js/sprites.js` — 삭제 전 참조 확인용
+
+**작업 내용**:
+1. `NightMode.js` 수정:
+   - `sprites.js` import 제거
+   - `drawPixels` import 제거
+   - moon: SpriteLoader 이미지 or `drawPlaceholder` or 간단한 canvas arc
+   - star: SpriteLoader 이미지 or `drawPlaceholder` or 간단한 canvas fillRect
+2. `Game.js` 수정:
+   - `sprites.js` import 제거
+   - `drawPixels` import 제거
+   - restart 아이콘: SpriteLoader 이미지 or `drawPlaceholder` or canvas 직접 그리기
+3. `utils.js` 수정:
+   - `drawPixels()` 함수 제거 (이 시점에서 import하는 파일 0개)
+4. `sprites.js` 삭제:
+   - 파일 삭제
+   - 모든 import 참조가 제거되었는지 최종 확인
+
+**완료 조건**:
+- [ ] NightMode moon/star가 정상 렌더링된다 (새 방식)
+- [ ] restart 아이콘이 정상 렌더링된다 (새 방식)
+- [ ] `sprites.js` 파일이 삭제되고 참조 에러가 없다
+- [ ] `drawPixels` 참조 에러가 없다
+- [ ] **밤/낮 전환, 게임오버 restart 표시 등 게임 플레이가 정상 동작한다**
+
+**열린 결정**: 없음
+
+---
+
+### Step 1-8: 점프 입력 확장 (페이지 전체)
+
+**목표**: 점프 입력 영역을 canvas에서 페이지 전체로 확장.
+
+**수정 파일**:
+- `frontend/js/Game.js` — 점프 입력 영역 변경
+
+**참고 파일**:
+- `frontend/js/Game.js` — 현재 입력 처리 코드
+
+**작업 내용**:
+1. `Game.js` 수정:
+   - 점프 입력: canvas 영역 → `document` 레벨 이벤트 리스너로 변경
+   - Space, ArrowUp, 터치(touchstart) 모두 페이지 전체에서 동작
+
+**완료 조건**:
+- [ ] 페이지 어디를 클릭/탭해도 점프가 동작한다
+- [ ] 기존 키보드(Space, ArrowUp) 입력이 정상 동작한다
+- [ ] 엎드리기(ArrowDown) 입력이 정상 동작한다
+- [ ] **게임 플레이가 정상 동작한다**
+
+**열린 결정**: 없음
+
+---
+
+### Step 1-9: Score 50점 단위 + 반응형 canvas
 
 **목표**: 점수 증가를 50점 단위로 변경하고, 모바일/PC 반응형 스케일링 적용.
 
@@ -273,6 +343,7 @@
 - [ ] 점수 표시가 5자리 포맷이다 (00050, 00100...)
 - [ ] 모바일/PC에서 canvas가 적절히 스케일링된다
 - [ ] 속도 증가 패턴이 정상 동작한다
+- [ ] **게임 플레이가 정상 동작한다**
 
 **열린 결정**:
 - PC 게임 크기: canvas 내부 해상도 변경 vs CSS 스케일링 → 이 Step 시작 전 확정
@@ -311,6 +382,7 @@
 - [ ] 캐릭터+장애물이 함께 위로 떠오른다
 - [ ] 아래로 떨어지며 사라진다
 - [ ] 시퀀스 완료 후 콜백이 호출된다
+- [ ] **게임 플레이가 정상 동작한다**
 
 **열린 결정**: 없음
 
@@ -324,6 +396,11 @@
 - `frontend/dino-game.html` — 랭킹/이름입력 UI 제거, ↻ 아이콘 추가
 - `frontend/css/dino-game.css` — ↻ 아이콘 스타일
 - `frontend/js/Game.js` — gameover 시 DeathAnimation 연동, ↻ 아이콘 표시/숨김, 다시하기 연출
+- `frontend/js/api.js` — `loadRanking()` 자동호출(86행) 제거
+
+> ⚠️ 랭킹/이름입력 UI 제거 시 함께 정리할 것:
+> - `api.js` 86행의 `loadRanking()` 자동 호출 제거 (DOM 요소가 없으면 에러)
+> - `Game.js` `gameOver()` 201행의 `playerName` DOM 참조 제거
 
 **참고 파일**:
 - `frontend/dino-game.html` — 현재 HTML 구조 (랭킹/입력란 제거 대상)
@@ -336,8 +413,11 @@
    - canvas 아래에 ↻ 아이콘 요소 추가 (기본 hidden)
 2. `dino-game.css` 수정:
    - ↻ 아이콘 스타일 (클릭 가능한 영역, 중앙 정렬)
-3. `Game.js` 수정:
+3. `api.js` 수정:
+   - `loadRanking()` 자동 호출 제거 (86행)
+4. `Game.js` 수정:
    - 충돌 감지 → `GAMEOVER` 상태 전환 → DeathAnimation.start() 호출
+   - `gameOver()`에서 playerName DOM 참조 제거
    - 사망 애니메이션 완료 → canvas에 "Game Over" 텍스트 렌더링 + ↻ 아이콘 표시
    - ↻ 클릭 →:
      - "Game Over" 텍스트 사라짐
@@ -351,6 +431,7 @@
 - [ ] 기존 랭킹/이름입력 UI가 제거되었다
 - [ ] ↻ 클릭 시 텍스트 사라짐 + 캐릭터 재등장 후 게임이 재시작된다
 - [ ] 재시작 시 점수가 0으로 초기화된다
+- [ ] **콘솔 에러 없이 게임 플레이가 정상 동작한다**
 
 **열린 결정**: 없음
 
@@ -375,7 +456,7 @@
 **참고 파일**:
 - `promo-dino-game-spec.md` §2.3 "해피엔딩 화면" — 연출 흐름, 레이아웃
 - `promo-dino-game-dev.md` §8.1 — happyending 데이터 흐름
-- `frontend/assets/sprites/sprite-config.json` — girlfriend 섹션
+- `frontend/assets/sprite-config.json` — girlfriend 섹션
 
 **작업 내용**:
 1. `Girlfriend.js` 작성:
@@ -411,6 +492,7 @@
 - [ ] 도달 시 두 캐릭터 모두 해피엔딩 스프라이트로 전환된다
 - [ ] "Love wins all" + ↻ 아이콘이 표시된다
 - [ ] ↻ 클릭 시 오른쪽 캐릭터 퇴장 + 주인공 재등장 후 게임 재시작된다
+- [ ] **게임 플레이가 정상 동작한다**
 
 **열린 결정**:
 - 해피엔딩 기본 트리거 점수 (클라이언트 확인 필요)
@@ -463,6 +545,7 @@
 - [ ] 서버 시작 시 game_settings, sprites 테이블이 생성된다
 - [ ] game_settings에 초기 데이터(happy_ending_score=10000)가 삽입된다
 - [ ] scores 테이블에 contact, user_agent, ip_address 필드가 있다
+- [ ] **서버가 정상 시작되고 기존 API가 동작한다**
 
 **열린 결정**:
 - 이미지 저장 방식: DB (BYTEA) vs 파일 스토리지 → 이 Step에서 확정 (문서 기본값: DB BYTEA)
@@ -501,6 +584,7 @@
 - [ ] `POST /admin/login`이 비밀번호 검증 후 토큰을 반환한다
 - [ ] 토큰 없이 어드민 API 호출 시 401이 반환된다
 - [ ] 유효한 토큰으로 어드민 API가 동작한다
+- [ ] **서버가 정상 시작되고 기존 게임 플레이에 영향이 없다**
 
 **열린 결정**:
 - 인증 방식: 단순 API Key vs JWT vs 세션 → 이 Step에서 확정
@@ -544,6 +628,7 @@
 - [ ] `GET /sprites/:key`로 이미지 바이너리를 받을 수 있다
 - [ ] 존재하지 않는 키 조회 시 404가 반환된다
 - [ ] 프론트엔드 SpriteLoader에서 이미지를 로드할 수 있다
+- [ ] **서버가 정상 시작되고 기존 기능에 영향이 없다**
 
 **열린 결정**: 없음
 
@@ -578,6 +663,7 @@
 - [ ] `PATCH /admin/settings`로 해피엔딩 점수를 변경할 수 있다
 - [ ] 변경된 값이 `GET /settings`에 즉시 반영된다
 - [ ] 프론트엔드에서 해피엔딩 트리거 점수를 로드할 수 있다
+- [ ] **서버가 정상 시작되고 기존 기능에 영향이 없다**
 
 **열린 결정**: 없음
 
@@ -612,6 +698,7 @@
 - [ ] 점수 저장 시 userAgent, IP가 자동으로 기록된다
 - [ ] 동일 contact로 재제출 시 높은 점수로 갱신된다
 - [ ] 상위 N개를 초과하는 데이터가 자동 삭제된다
+- [ ] **서버가 정상 시작되고 기존 기능에 영향이 없다**
 
 **열린 결정**:
 - 랭킹 보관 수 (N): 100 / 500 → 이 Step에서 확정
@@ -659,6 +746,7 @@
 - [ ] 이미지 업로드가 동작하고 결과가 표시된다
 - [ ] 해피엔딩 점수 변경이 동작한다
 - [ ] 일정 시간 비활동 시 자동 로그아웃된다
+- [ ] **어드민 페이지가 정상 동작하고, 게임 플레이에 영향이 없다**
 
 **열린 결정**: 없음
 
@@ -689,6 +777,7 @@
 - [ ] 허용된 도메인에서 API 호출 시 CORS 에러가 없다
 - [ ] 허용되지 않은 도메인에서 iframe 삽입 시 차단된다
 - [ ] 허용 도메인을 환경변수로 변경할 수 있다
+- [ ] **서버가 정상 시작되고 기존 기능에 영향이 없다**
 
 **열린 결정**:
 - 부모 페이지와 postMessage 통신 필요 여부 (스토어 측 요구사항에 따라)
@@ -767,15 +856,17 @@
 
 | Phase | Step | 목표 | 주요 파일 |
 | ----- | ---- | ---- | --------- |
-| **1** | 1-1 | SpriteLoader + placeholder | SpriteLoader.js, sprite-config.json, utils.js |
+| **1** | 1-1 | SpriteLoader + placeholder (추가만) | SpriteLoader.js, sprite-config.json, utils.js, Game.js |
 | | 1-2 | 상태 머신 확장 | Game.js |
 | | 1-3 | 인트로 화면 연출 | Intro.js, Game.js, dino-game.css |
 | | 1-4 | Dino 이미지 렌더링 전환 | Dino.js |
 | | 1-5 | Obstacle 5종 + 이미지 전환 | Obstacle.js |
-| | 1-6 | Ground + sprites.js 제거 + 점프 확장 | Ground.js, Game.js, sprites.js 삭제 |
-| | 1-7 | Score 50점 + 반응형 canvas | Score.js, Game.js, dino-game.html |
+| | 1-6 | Ground 이미지 타일 전환 | Ground.js |
+| | 1-7 | NightMode + restart 전환 → sprites.js/drawPixels 제거 | NightMode.js, Game.js, utils.js, sprites.js 삭제 |
+| | 1-8 | 점프 입력 확장 (페이지 전체) | Game.js |
+| | 1-9 | Score 50점 + 반응형 canvas | Score.js, Game.js, dino-game.html |
 | **2** | 2-1 | 사망 애니메이션 컴포넌트 | DeathAnimation.js |
-| | 2-2 | 게임오버 UI + 다시하기 | dino-game.html, Game.js |
+| | 2-2 | 게임오버 UI + 다시하기 | dino-game.html, Game.js, api.js |
 | **3** | 3-1 | 해피엔딩 전체 (Girlfriend + 연출) | Girlfriend.js, HappyEnding.js, Dino.js, Game.js |
 | **4** | 4-1 | DB 스키마 확장 | database.module.ts |
 | | 4-2 | 어드민 인증 모듈 | auth/ |
@@ -786,3 +877,16 @@
 | **5** | 5-1 | CORS + iframe 보안 | main.ts |
 | | 5-2 | 배포 설정 + CI/CD | deploy workflow, 플랫폼 설정 |
 | | 5-3 | iframe 테스트 + 최종 검증 | 전체 |
+
+---
+
+## 원본 대비 변경 사항
+
+| 원본 | 재구성 | 변경 이유 |
+|------|--------|-----------|
+| 1-1에서 `drawPixels` 제거 | 1-1은 추가만, 제거는 **1-7**로 이동 | 소비자(Dino/Obstacle/NightMode/Game)가 아직 사용 중이라 화면 깨짐 |
+| 1-2 LOADING 상태가 이미지 로드 실패 시 처리 불명확 | 성공/실패 **모두 INTRO 전환** 명시 | 이미지 없으면 무한 로딩 위험 |
+| 1-6에서 Ground + sprites.js 삭제 + 점프 확장 합본 | **1-6**(Ground), **1-7**(NightMode+restart→삭제), **1-8**(점프 확장)으로 3분할 | 삭제 시점에 NightMode/Game.js가 아직 sprites.js 참조, 무관한 작업 묶여있음 |
+| NightMode/restart 렌더링 전환 Step 없음 | **1-7**에 추가 | sprites.js 삭제 전 모든 소비자 전환 필요 |
+| 2-2에서 `api.js` 정리 미언급 | `api.js` loadRanking 자동호출 제거 + Game.js playerName 참조 제거 명시 | HTML에서 DOM 제거 시 참조 에러 발생 |
+| 1-7 (Score+반응형) | **1-9**로 넘버링 변경 | Step 추가(1-7, 1-8)로 밀림 |
