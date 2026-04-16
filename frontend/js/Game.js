@@ -1,5 +1,5 @@
 import {
-  viewport, INITIAL_SPEED, MAX_SPEED,
+  viewport, REFERENCE_HEIGHT, INITIAL_SPEED, MAX_SPEED,
   SPEED_INCREMENT, MIN_OBSTACLE_GAP,
 } from './config.js';
 import { checkCollision } from './utils.js';
@@ -125,12 +125,11 @@ class Game {
   }
 
   resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    canvas.width = w;
-    canvas.height = h;
-    viewport.width = w;
-    viewport.height = h;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    viewport.scale = window.innerHeight / REFERENCE_HEIGHT;
+    viewport.width = canvas.width / viewport.scale;
+    viewport.height = REFERENCE_HEIGHT;
   }
 
   startIntroAnimation() {
@@ -164,7 +163,7 @@ class Game {
       types.push('flying');
     }
     const type = types[Math.floor(Math.random() * types.length)];
-    this.obstacles.push(new Obstacle(type, canvas.width + 10, this.speed));
+    this.obstacles.push(new Obstacle(type, viewport.width + 10, this.speed));
   }
 
   update() {
@@ -256,9 +255,12 @@ class Game {
   draw() {
     const colors = this.nightMode.getColors();
 
+    ctx.save();
+    ctx.scale(viewport.scale, viewport.scale);
+
     // Background
     ctx.fillStyle = colors.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
     document.body.style.background = colors.bg;
 
     switch (this.state) {
@@ -288,6 +290,8 @@ class Game {
         // 추후 Step 3-1에서 해피엔딩 연출 추가
         break;
     }
+
+    ctx.restore();
   }
 
   drawLoading(colors) {
@@ -338,11 +342,11 @@ class Game {
     ctx.fillStyle = colors.fg;
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('G A M E  O V E R', canvas.width / 2, canvas.height / 2 - 15);
+    ctx.fillText('G A M E  O V E R', viewport.width / 2, viewport.height / 2 - 15);
 
     // Restart icon — circular arrow via canvas arcs
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2 + 12;
+    const cx = viewport.width / 2;
+    const cy = viewport.height / 2 + 12;
     const r = 10;
     ctx.beginPath();
     ctx.arc(cx, cy, r, -Math.PI * 0.8, Math.PI * 0.6);

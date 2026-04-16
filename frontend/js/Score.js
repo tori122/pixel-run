@@ -1,6 +1,6 @@
 import { viewport } from './config.js';
 
-const SCORE_PER_TICK = 5; // 50점 단위: 매 프레임 +5, 10프레임마다 +50
+const SCORE_PER_TICK = 1;
 
 export class Score {
   constructor() {
