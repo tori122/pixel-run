@@ -28,6 +28,9 @@ export class Ground {
   }
 
   draw(ctx, color) {
+    ctx.fillStyle = '#B1E729';
+    ctx.fillRect(0, viewport.groundY, viewport.width, viewport.height - viewport.groundY);
+
     const img = spriteLoader.getImage('ground');
     if (img) {
       const size = spriteLoader.getSize('ground');
