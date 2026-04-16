@@ -1,6 +1,6 @@
 import { CANVAS_WIDTH, NIGHT_CYCLE_SCORE, NIGHT_TRANSITION_FRAMES } from './config.js';
-import { SPRITES } from './sprites.js';
-import { drawPixels, lerpColor } from './utils.js';
+import { lerpColor } from './utils.js';
+import { spriteLoader } from './SpriteLoader.js';
 
 export class NightMode {
   constructor() {
@@ -15,7 +15,7 @@ export class NightMode {
         y: 10 + Math.random() * 40,
       });
     }
-    this.phase = 0; // moon phase 0-5
+    this.phase = 0;
   }
 
   update(score) {
@@ -25,7 +25,6 @@ export class NightMode {
     if (shouldBeNight && !this.active) {
       this.active = true;
       this.phase = (this.phase + 1) % 6;
-      // Regenerate stars
       for (let i = 0; i < this.stars.length; i++) {
         this.stars[i].x = 50 + Math.random() * (CANVAS_WIDTH - 100);
         this.stars[i].y = 10 + Math.random() * 40;
@@ -53,14 +52,29 @@ export class NightMode {
   draw(ctx, color) {
     if (this.opacity < 0.01) return;
     ctx.globalAlpha = this.opacity;
+    ctx.fillStyle = color;
 
-    // Moon
-    const ms = 2;
-    drawPixels(ctx, SPRITES.moon, this.moonX, this.moonY, ms, color);
+    // Moon — crescent arc
+    const mx = this.moonX;
+    const my = this.moonY;
+    ctx.beginPath();
+    ctx.arc(mx + 7, my + 7, 7, 0, Math.PI * 2);
+    ctx.fill();
+    // Phase shadow
+    if (this.phase > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      const offset = this.phase * 2;
+      ctx.beginPath();
+      ctx.arc(mx + 7 + offset, my + 7, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
 
-    // Stars
+    // Stars — small cross pattern
     for (const star of this.stars) {
-      drawPixels(ctx, SPRITES.star, star.x, star.y, 2, color);
+      ctx.fillRect(star.x + 1, star.y, 1, 3);
+      ctx.fillRect(star.x, star.y + 1, 3, 1);
     }
 
     ctx.globalAlpha = 1;

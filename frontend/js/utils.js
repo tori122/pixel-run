@@ -1,10 +1,3 @@
-export function drawPixels(ctx, pixels, x, y, scale, color) {
-  ctx.fillStyle = color;
-  for (const [px, py, w, h] of pixels) {
-    ctx.fillRect(x + px * scale, y + py * scale, (w || 1) * scale, (h || 1) * scale);
-  }
-}
-
 export function drawPlaceholder(ctx, x, y, w, h, label) {
   ctx.save();
   ctx.fillStyle = 'rgba(76, 175, 80, 0.4)';

@@ -1,37 +1,46 @@
 import { GROUND_Y, GRAVITY, JUMP_VELOCITY } from './config.js';
-import { SPRITES } from './sprites.js';
-import { drawPixels } from './utils.js';
+import { spriteLoader } from './SpriteLoader.js';
+import { drawPlaceholder } from './utils.js';
 
 export class Dino {
   constructor() {
     this.x = 25;
     this.y = GROUND_Y;
-    this.width = 15;
-    this.height = 17;
     this.ducking = false;
     this.jumping = false;
+    this.dead = false;
     this.vy = 0;
     this.frame = 0;
     this.frameTimer = 0;
-    this.scale = 2.5;
-    this.blinkTimer = 0;
+  }
+
+  get width() {
+    const config = spriteLoader.getConfig();
+    if (this.ducking && config?.dino?.duckSize) return config.dino.duckSize.w;
+    if (config?.dino?.size) return config.dino.size.w;
+    return this.ducking ? 118 : 88;
+  }
+
+  get height() {
+    const config = spriteLoader.getConfig();
+    if (this.ducking && config?.dino?.duckSize) return config.dino.duckSize.h;
+    if (config?.dino?.size) return config.dino.size.h;
+    return this.ducking ? 60 : 96;
   }
 
   get hitbox() {
-    if (this.ducking) {
-      return {
-        x: this.x + 4,
-        y: this.y - 12 * this.scale / 2.5,
-        w: 18 * this.scale / 2.5 - 4,
-        h: 12 * this.scale / 2.5,
-      };
+    const config = spriteLoader.getConfig();
+    const drawY = this.y - this.height;
+
+    if (this.ducking && config?.dino?.duckHitbox) {
+      const hb = config.dino.duckHitbox;
+      return { x: this.x + hb.x, y: drawY + hb.y, w: hb.w, h: hb.h };
     }
-    return {
-      x: this.x + 4,
-      y: this.y - this.height * this.scale / 2.5,
-      w: this.width * this.scale / 2.5 - 4,
-      h: this.height * this.scale / 2.5,
-    };
+    if (config?.dino?.hitbox) {
+      const hb = config.dino.hitbox;
+      return { x: this.x + hb.x, y: drawY + hb.y, w: hb.w, h: hb.h };
+    }
+    return { x: this.x + 4, y: drawY, w: this.width - 8, h: this.height };
   }
 
   jump() {
@@ -67,24 +76,30 @@ export class Dino {
     }
   }
 
-  draw(ctx, color) {
-    const s = this.scale;
-    const drawY = this.ducking
-      ? this.y - 12 * s / 2.5
-      : this.y - this.height * s / 2.5;
+  _getSpriteKey() {
+    if (this.dead) return `dino-dead-${this.frame + 1}`;
+    if (this.ducking) return `dino-duck-${this.frame + 1}`;
+    if (this.jumping) return `dino-jump-${this.frame + 1}`;
+    return `dino-run-${this.frame + 1}`;
+  }
 
-    if (this.ducking) {
-      drawPixels(ctx, SPRITES.dinoDuckBody, this.x, drawY, s / 2.5, color);
-      const legSprite = this.frame === 0 ? SPRITES.dinoDuckLeg1 : SPRITES.dinoDuckLeg2;
-      drawPixels(ctx, legSprite, this.x, drawY, s / 2.5, color);
+  _getLabel() {
+    if (this.dead) return 'DEAD';
+    if (this.ducking) return 'DUCK';
+    if (this.jumping) return 'JUMP';
+    return 'RUN';
+  }
+
+  draw(ctx, color) {
+    const w = this.width;
+    const h = this.height;
+    const drawY = this.y - h;
+
+    const img = spriteLoader.getImage(this._getSpriteKey());
+    if (img) {
+      ctx.drawImage(img, this.x, drawY, w, h);
     } else {
-      drawPixels(ctx, SPRITES.dinoBody, this.x, drawY, s / 2.5, color);
-      if (!this.jumping) {
-        const legSprite = this.frame === 0 ? SPRITES.dinoLeg1Left : SPRITES.dinoLeg1Right;
-        drawPixels(ctx, legSprite, this.x, drawY, s / 2.5, color);
-      } else {
-        drawPixels(ctx, SPRITES.dinoLeg1Left, this.x, drawY, s / 2.5, color);
-      }
+      drawPlaceholder(ctx, this.x, drawY, w, h, this._getLabel());
     }
   }
 }

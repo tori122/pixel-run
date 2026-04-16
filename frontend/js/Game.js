@@ -2,8 +2,7 @@ import {
   CANVAS_WIDTH, CANVAS_HEIGHT, INITIAL_SPEED, MAX_SPEED,
   SPEED_INCREMENT, MIN_OBSTACLE_GAP,
 } from './config.js';
-import { SPRITES } from './sprites.js';
-import { drawPixels, checkCollision } from './utils.js';
+import { checkCollision } from './utils.js';
 import { spriteLoader } from './SpriteLoader.js';
 import { saveScore, loadRanking } from './api.js';
 import { Dino } from './Dino.js';
@@ -103,8 +102,8 @@ class Game {
       }
     });
 
-    // Touch support
-    canvas.addEventListener('touchstart', (e) => {
+    // Touch support (page-wide)
+    document.addEventListener('touchstart', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
       const rect = canvas.getBoundingClientRect();
@@ -114,12 +113,12 @@ class Game {
       } else {
         handleAction('jump');
       }
-    });
+    }, { passive: false });
 
-    canvas.addEventListener('touchend', (e) => {
+    document.addEventListener('touchend', (e) => {
       e.preventDefault();
       handleAction('duckEnd');
-    });
+    }, { passive: false });
 
     // Responsive canvas
     window.addEventListener('resize', () => this.resize());
@@ -168,10 +167,9 @@ class Game {
   }
 
   spawnObstacle() {
-    const types = ['cactusSmall', 'cactusLarge', 'cactusDouble'];
-    // Pterodactyls after score 200
-    if (Math.floor(this.score.value) > 200) {
-      types.push('ptero');
+    const types = ['obstacle-1', 'obstacle-2', 'obstacle-3', 'obstacle-4', 'obstacle-5'];
+    if (this.score.displayValue > 200) {
+      types.push('flying');
     }
     const type = types[Math.floor(Math.random() * types.length)];
     this.obstacles.push(new Obstacle(type, CANVAS_WIDTH + 10, this.speed));
@@ -219,7 +217,7 @@ class Game {
     this.dino.update();
     this.ground.update(this.speed);
     this.score.update();
-    this.nightMode.update(Math.floor(this.score.value));
+    this.nightMode.update(this.score.displayValue);
 
     // Obstacles
     this.obstacleTimer++;
@@ -262,7 +260,7 @@ class Game {
     this.gameOverDelay = 20; // Prevent instant restart
 
     const playerName = document.getElementById('playerName').value.trim() || 'anonymous';
-    const finalScore = Math.floor(this.score.value);
+    const finalScore = this.score.displayValue;
     saveScore(playerName, finalScore).then(() => loadRanking());
   }
 
@@ -353,10 +351,25 @@ class Game {
     ctx.textAlign = 'center';
     ctx.fillText('G A M E  O V E R', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 15);
 
-    // Restart icon
-    const rx = CANVAS_WIDTH / 2 - 12;
-    const ry = CANVAS_HEIGHT / 2;
-    drawPixels(ctx, SPRITES.restart, rx, ry, 2.2, colors.fg);
+    // Restart icon — circular arrow via canvas arcs
+    const cx = CANVAS_WIDTH / 2;
+    const cy = CANVAS_HEIGHT / 2 + 12;
+    const r = 10;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI * 0.8, Math.PI * 0.6);
+    ctx.strokeStyle = colors.fg;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Arrow tip
+    const tipX = cx + r * Math.cos(Math.PI * 0.6);
+    const tipY = cy + r * Math.sin(Math.PI * 0.6);
+    ctx.beginPath();
+    ctx.moveTo(tipX - 4, tipY - 4);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineTo(tipX + 4, tipY - 2);
+    ctx.strokeStyle = colors.fg;
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   loop() {

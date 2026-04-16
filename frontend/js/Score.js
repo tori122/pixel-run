@@ -1,5 +1,7 @@
 import { CANVAS_WIDTH } from './config.js';
 
+const SCORE_PER_TICK = 5; // 50점 단위: 매 프레임 +5, 10프레임마다 +50
+
 export class Score {
   constructor() {
     this.value = 0;
@@ -8,12 +10,16 @@ export class Score {
     this.flashVisible = true;
   }
 
-  update() {
-    const prev = Math.floor(this.value);
-    this.value += 0.1;
-    const curr = Math.floor(this.value);
+  get displayValue() {
+    return Math.floor(this.value / 10) * 50;
+  }
 
-    if (Math.floor(prev / 100) !== Math.floor(curr / 100) && curr > 0) {
+  update() {
+    const prevDisplay = this.displayValue;
+    this.value += SCORE_PER_TICK;
+    const currDisplay = this.displayValue;
+
+    if (Math.floor(prevDisplay / 500) !== Math.floor(currDisplay / 500) && currDisplay > 0) {
       this.flashTimer = 30;
     }
 
@@ -26,8 +32,9 @@ export class Score {
   }
 
   save() {
-    if (Math.floor(this.value) > this.highScore) {
-      this.highScore = Math.floor(this.value);
+    const score = this.displayValue;
+    if (score > this.highScore) {
+      this.highScore = score;
       localStorage.setItem('dinoHighScore', String(this.highScore));
     }
   }
@@ -37,14 +44,12 @@ export class Score {
     ctx.font = '12px monospace';
     ctx.textAlign = 'right';
 
-    // High score
     if (this.highScore > 0) {
       ctx.fillText('HI ' + String(this.highScore).padStart(5, '0'), CANVAS_WIDTH - 80, 15);
     }
 
-    // Current score
     if (this.flashVisible) {
-      ctx.fillText(String(Math.floor(this.value)).padStart(5, '0'), CANVAS_WIDTH - 10, 15);
+      ctx.fillText(String(this.displayValue).padStart(5, '0'), CANVAS_WIDTH - 10, 15);
     }
   }
 }
