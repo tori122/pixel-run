@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH } from './config.js';
+import { viewport } from './config.js';
 
 const SCORE_PER_TICK = 5; // 50점 단위: 매 프레임 +5, 10프레임마다 +50
 
@@ -45,11 +45,11 @@ export class Score {
     ctx.textAlign = 'right';
 
     if (this.highScore > 0) {
-      ctx.fillText('HI ' + String(this.highScore).padStart(5, '0'), CANVAS_WIDTH - 80, 15);
+      ctx.fillText('HI ' + String(this.highScore).padStart(5, '0'), viewport.width - 80, 15);
     }
 
     if (this.flashVisible) {
-      ctx.fillText(String(this.displayValue).padStart(5, '0'), CANVAS_WIDTH - 10, 15);
+      ctx.fillText(String(this.displayValue).padStart(5, '0'), viewport.width - 10, 15);
     }
   }
 }

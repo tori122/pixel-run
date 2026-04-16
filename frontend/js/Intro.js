@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y } from "./config.js";
+import { viewport } from "./config.js";
 
 const TITLE_FONT = "'EXEPixelPerfect', monospace";
 const TITLE_TEXT = "Run Dude Run!";
@@ -14,8 +14,7 @@ const BLINK_INTERVAL = 50;
 
 export class Intro {
   constructor() {
-    this.titleY = CANVAS_HEIGHT / 2 - 30;
-    this.titleBaseY = this.titleY;
+    this.titleY = 0;
     this.titleVy = 0;
     this.titleFalling = false;
     this.titleFallen = false;
@@ -43,11 +42,16 @@ export class Intro {
   update() {
     this.promptBlink++;
 
+    // Keep title centered until animation starts
+    if (!this.titleFalling) {
+      this.titleY = viewport.height / 2 - 30;
+    }
+
     // Title fall animation
     if (this.titleFalling && !this.titleFallen) {
       this.titleVy += TITLE_GRAVITY;
       this.titleY += this.titleVy;
-      if (this.titleY > CANVAS_HEIGHT + 50) {
+      if (this.titleY > viewport.height + 50) {
         this.titleFallen = true;
         this.dinoEntering = true;
         this.dinoX = DINO_START_X;
@@ -80,7 +84,7 @@ export class Intro {
       ctx.font = `bold ${TITLE_FONT_SIZE}px ${TITLE_FONT}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(TITLE_TEXT, CANVAS_WIDTH / 2, this.titleY);
+      ctx.fillText(TITLE_TEXT, viewport.width / 2, this.titleY);
     }
 
     // Prompt text (blink effect)
@@ -91,9 +95,9 @@ export class Intro {
         ctx.font = "8px monospace";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(PROMPT_TEXT, CANVAS_WIDTH / 2, this.titleY + 30);
+        ctx.fillText(PROMPT_TEXT, viewport.width / 2, this.titleY + 30);
         ctx.font = "6px monospace";
-        ctx.fillText(SUB_PROMPT_TEXT, CANVAS_WIDTH / 2, this.titleY + 40);
+        ctx.fillText(SUB_PROMPT_TEXT, viewport.width / 2, this.titleY + 40);
       }
     }
   }

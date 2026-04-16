@@ -1,4 +1,4 @@
-import { GROUND_Y } from './config.js';
+import { viewport } from './config.js';
 import { spriteLoader } from './SpriteLoader.js';
 import { drawPlaceholder } from './utils.js';
 
@@ -16,7 +16,7 @@ export class Obstacle {
       const flyConfig = config?.flyingObstacles?.[0];
       this.width = flyConfig?.size?.w || 84;
       this.height = flyConfig?.size?.h || 60;
-      const heights = [GROUND_Y, GROUND_Y - 30, GROUND_Y - 55];
+      const heights = [viewport.groundY, viewport.groundY - 30, viewport.groundY - 55];
       this.y = heights[Math.floor(Math.random() * heights.length)];
       this._hitboxConfig = flyConfig?.hitbox || { x: 2, y: 2, w: 80, h: 56 };
       this._spriteKeys = ['obstacle-fly-1', 'obstacle-fly-2'];
@@ -24,7 +24,7 @@ export class Obstacle {
       const obsConfig = config?.obstacles?.find((o) => o.type === type);
       this.width = obsConfig?.size?.w || 50;
       this.height = obsConfig?.size?.h || 96;
-      this.y = GROUND_Y;
+      this.y = viewport.groundY;
       this._hitboxConfig = obsConfig?.hitbox || { x: 2, y: 0, w: this.width - 4, h: this.height };
       const sprites = obsConfig?.sprites || [];
       this._spriteKeys = sprites.map((s) => s.replace(/\.\w+$/, ''));

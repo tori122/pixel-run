@@ -1,8 +1,8 @@
-import { CANVAS_WIDTH } from './config.js';
+import { viewport } from './config.js';
 
 export class Cloud {
   constructor(x, y) {
-    this.x = x || CANVAS_WIDTH + Math.random() * 100;
+    this.x = x || viewport.width + Math.random() * 100;
     this.y = y || 15 + Math.random() * 40;
     this.width = 30 + Math.random() * 20;
     this.speed = 0.5 + Math.random() * 0.5;

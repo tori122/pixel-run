@@ -1,6 +1,9 @@
-export const CANVAS_WIDTH = 600;
-export const CANVAS_HEIGHT = 150;
-export const GROUND_Y = 120;
+// Viewport: Game.js resize()에서 디스플레이 크기에 맞게 업데이트
+export const viewport = {
+  width: 600,
+  height: 150,
+  get groundY() { return this.height - 30; },
+};
 export const GRAVITY = 0.6;
 export const JUMP_VELOCITY = -11.5;
 export const INITIAL_SPEED = 5;

@@ -1,11 +1,11 @@
-import { GROUND_Y, GRAVITY, JUMP_VELOCITY } from './config.js';
+import { viewport, GRAVITY, JUMP_VELOCITY } from './config.js';
 import { spriteLoader } from './SpriteLoader.js';
 import { drawPlaceholder } from './utils.js';
 
 export class Dino {
   constructor() {
     this.x = 25;
-    this.y = GROUND_Y;
+    this.y = viewport.groundY;
     this.ducking = false;
     this.jumping = false;
     this.dead = false;
@@ -63,11 +63,13 @@ export class Dino {
     if (this.jumping) {
       this.vy += GRAVITY;
       this.y += this.vy;
-      if (this.y >= GROUND_Y) {
-        this.y = GROUND_Y;
+      if (this.y >= viewport.groundY) {
+        this.y = viewport.groundY;
         this.jumping = false;
         this.vy = 0;
       }
+    } else {
+      this.y = viewport.groundY;
     }
     this.frameTimer++;
     if (this.frameTimer > 6) {

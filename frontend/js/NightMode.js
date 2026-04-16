@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH, NIGHT_CYCLE_SCORE, NIGHT_TRANSITION_FRAMES } from './config.js';
+import { viewport, NIGHT_CYCLE_SCORE, NIGHT_TRANSITION_FRAMES } from './config.js';
 import { lerpColor } from './utils.js';
 import { spriteLoader } from './SpriteLoader.js';
 
@@ -6,12 +6,12 @@ export class NightMode {
   constructor() {
     this.active = false;
     this.opacity = 0;
-    this.moonX = CANVAS_WIDTH - 60;
+    this.moonX = viewport.width - 60;
     this.moonY = 20;
     this.stars = [];
     for (let i = 0; i < 5; i++) {
       this.stars.push({
-        x: 50 + Math.random() * (CANVAS_WIDTH - 100),
+        x: 50 + Math.random() * (viewport.width - 100),
         y: 10 + Math.random() * 40,
       });
     }
@@ -26,7 +26,7 @@ export class NightMode {
       this.active = true;
       this.phase = (this.phase + 1) % 6;
       for (let i = 0; i < this.stars.length; i++) {
-        this.stars[i].x = 50 + Math.random() * (CANVAS_WIDTH - 100);
+        this.stars[i].x = 50 + Math.random() * (viewport.width - 100);
         this.stars[i].y = 10 + Math.random() * 40;
       }
     } else if (!shouldBeNight && this.active) {

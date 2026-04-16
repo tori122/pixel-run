@@ -1,10 +1,9 @@
 import {
-  CANVAS_WIDTH, CANVAS_HEIGHT, INITIAL_SPEED, MAX_SPEED,
+  viewport, INITIAL_SPEED, MAX_SPEED,
   SPEED_INCREMENT, MIN_OBSTACLE_GAP,
 } from './config.js';
 import { checkCollision } from './utils.js';
 import { spriteLoader } from './SpriteLoader.js';
-import { saveScore, loadRanking } from './api.js';
 import { Dino } from './Dino.js';
 import { Obstacle } from './Obstacle.js';
 import { Ground } from './Ground.js';
@@ -24,8 +23,8 @@ const State = {
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
-canvas.width = CANVAS_WIDTH;
-canvas.height = CANVAS_HEIGHT;
+canvas.width = viewport.width;
+canvas.height = viewport.height;
 
 class Game {
   constructor() {
@@ -126,19 +125,12 @@ class Game {
   }
 
   resize() {
-    const maxW = window.innerWidth * 0.95;
-    const maxH = window.innerHeight * 0.8;
-    const ratio = CANVAS_WIDTH / CANVAS_HEIGHT;
-
-    let w = maxW;
-    let h = w / ratio;
-    if (h > maxH) {
-      h = maxH;
-      w = h * ratio;
-    }
-
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = w;
+    canvas.height = h;
+    viewport.width = w;
+    viewport.height = h;
   }
 
   startIntroAnimation() {
@@ -172,7 +164,7 @@ class Game {
       types.push('flying');
     }
     const type = types[Math.floor(Math.random() * types.length)];
-    this.obstacles.push(new Obstacle(type, CANVAS_WIDTH + 10, this.speed));
+    this.obstacles.push(new Obstacle(type, canvas.width + 10, this.speed));
   }
 
   update() {
@@ -259,9 +251,6 @@ class Game {
     this.score.save();
     this.gameOverDelay = 20; // Prevent instant restart
 
-    const playerName = document.getElementById('playerName').value.trim() || 'anonymous';
-    const finalScore = this.score.displayValue;
-    saveScore(playerName, finalScore).then(() => loadRanking());
   }
 
   draw() {
@@ -269,7 +258,7 @@ class Game {
 
     // Background
     ctx.fillStyle = colors.bg;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     document.body.style.background = colors.bg;
 
     switch (this.state) {
@@ -349,11 +338,11 @@ class Game {
     ctx.fillStyle = colors.fg;
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('G A M E  O V E R', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 15);
+    ctx.fillText('G A M E  O V E R', canvas.width / 2, canvas.height / 2 - 15);
 
     // Restart icon — circular arrow via canvas arcs
-    const cx = CANVAS_WIDTH / 2;
-    const cy = CANVAS_HEIGHT / 2 + 12;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2 + 12;
     const r = 10;
     ctx.beginPath();
     ctx.arc(cx, cy, r, -Math.PI * 0.8, Math.PI * 0.6);
