@@ -4,6 +4,7 @@ import {
 } from './config.js';
 import { SPRITES } from './sprites.js';
 import { drawPixels, checkCollision } from './utils.js';
+import { spriteLoader } from './SpriteLoader.js';
 import { saveScore, loadRanking } from './api.js';
 import { Dino } from './Dino.js';
 import { Obstacle } from './Obstacle.js';
@@ -30,6 +31,8 @@ class Game {
     this.obstacleTimer = 0;
     this.cloudTimer = 0;
     this.gameOverDelay = 0;
+
+    spriteLoader.init().catch((err) => console.warn('[Game] SpriteLoader init failed:', err));
 
     // Pre-populate clouds
     for (let i = 0; i < 3; i++) {

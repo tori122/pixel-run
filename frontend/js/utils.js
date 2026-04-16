@@ -5,6 +5,25 @@ export function drawPixels(ctx, pixels, x, y, scale, color) {
   }
 }
 
+export function drawPlaceholder(ctx, x, y, w, h, label) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(76, 175, 80, 0.4)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(76, 175, 80, 0.8)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+
+  if (label) {
+    const fontSize = Math.max(8, Math.min(12, w / label.length * 1.5));
+    ctx.fillStyle = '#333';
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x + w / 2, y + h / 2);
+  }
+  ctx.restore();
+}
+
 export function lerpColor(a, b, t) {
   return [
     Math.round(a[0] + (b[0] - a[0]) * t),

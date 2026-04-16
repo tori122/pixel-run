@@ -1,0 +1,63 @@
+{
+  "format": "webp",
+  "dino": {
+    "run": ["dino-run-1.webp", "dino-run-2.webp"],
+    "duck": ["dino-duck-1.webp", "dino-duck-2.webp"],
+    "jump": ["dino-jump-1.webp", "dino-jump-2.webp"],
+    "dead": ["dino-dead-1.webp", "dino-dead-2.webp"],
+    "happyEnding": ["dino-happy-1.webp", "dino-happy-2.webp"],
+    "size": { "w": 88, "h": 96 },
+    "duckSize": { "w": 118, "h": 60 },
+    "hitbox": { "x": 4, "y": 0, "w": 80, "h": 96 },
+    "duckHitbox": { "x": 4, "y": 8, "w": 110, "h": 52 }
+  },
+  "girlfriend": {
+    "idle": ["girlfriend-idle-1.webp", "girlfriend-idle-2.webp"],
+    "happyEnding": ["girlfriend-happy-1.webp", "girlfriend-happy-2.webp"],
+    "size": { "w": 88, "h": 96 }
+  },
+  "obstacles": [
+    {
+      "type": "obstacle-1",
+      "sprites": ["obstacle-1-1.webp", "obstacle-1-2.webp"],
+      "size": { "w": 34, "h": 70 },
+      "hitbox": { "x": 2, "y": 0, "w": 30, "h": 70 }
+    },
+    {
+      "type": "obstacle-2",
+      "sprites": ["obstacle-2-1.webp", "obstacle-2-2.webp"],
+      "size": { "w": 50, "h": 96 },
+      "hitbox": { "x": 2, "y": 0, "w": 46, "h": 96 }
+    },
+    {
+      "type": "obstacle-3",
+      "sprites": ["obstacle-3-1.webp", "obstacle-3-2.webp"],
+      "size": { "w": 80, "h": 96 },
+      "hitbox": { "x": 2, "y": 0, "w": 76, "h": 96 }
+    },
+    {
+      "type": "obstacle-4",
+      "sprites": ["obstacle-4-1.webp", "obstacle-4-2.webp"],
+      "size": { "w": 50, "h": 96 },
+      "hitbox": { "x": 2, "y": 0, "w": 46, "h": 96 }
+    },
+    {
+      "type": "obstacle-5",
+      "sprites": ["obstacle-5-1.webp", "obstacle-5-2.webp"],
+      "size": { "w": 50, "h": 96 },
+      "hitbox": { "x": 2, "y": 0, "w": 46, "h": 96 }
+    }
+  ],
+  "flyingObstacles": [
+    {
+      "sprites": ["obstacle-fly-1.webp", "obstacle-fly-2.webp"],
+      "size": { "w": 84, "h": 60 },
+      "hitbox": { "x": 2, "y": 2, "w": 80, "h": 56 }
+    }
+  ],
+  "ground": {
+    "sprite": "ground.webp",
+    "size": { "w": 2400, "h": 24 },
+    "tileWidth": 2400
+  }
+}
