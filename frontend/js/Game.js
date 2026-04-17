@@ -48,7 +48,7 @@ class Game {
     this.score = new Score();
     this.deathAnimation = new DeathAnimation();
     this.happyEnding = new HappyEnding();
-    this.happyEndingScore = 1500; // 테스트용 (서버 설정 로드 전 기본값)
+    this.happyEndingScore = 10000; // 서버 설정 로드 전 기본값
     this.happyEndingTriggered = false;
     this.speed = INITIAL_SPEED;
     this.obstacleTimer = 0;
@@ -77,6 +77,19 @@ class Game {
         );
         this.intro.onPreloadComplete();
         this.state = State.INTRO;
+      });
+
+    // 서버에서 게임 설정 로드
+    fetch("/settings")
+      .then((res) => res.json())
+      .then((settings) => {
+        if (settings.happy_ending_score) {
+          this.happyEndingScore = Number(settings.happy_ending_score);
+          console.log("[Game] Happy ending score loaded:", this.happyEndingScore);
+        }
+      })
+      .catch((err) => {
+        console.warn("[Game] Failed to load settings, using default:", err);
       });
 
     this.loop();
