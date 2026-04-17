@@ -3,6 +3,9 @@ import { Girlfriend } from "./Girlfriend.js";
 
 const TITLE_FONT = "'Press Start 2P', monospace";
 
+const restartIcon = new Image();
+restartIcon.src = "assets/icons/restart.svg";
+
 const Phase = {
   CLEAR_OBSTACLES: "clear_obstacles", // 장애물 등장 중단, 기존 장애물 빠져나감
   GIRLFRIEND_ENTER: "girlfriend_enter", // 여친 쥐 오른쪽에서 등장
@@ -136,24 +139,12 @@ export class HappyEnding {
       ctx.textBaseline = "middle";
       ctx.fillText("Love wins all", viewport.width / 2, viewport.height / 2 - 30);
 
-      // Restart icon — circular arrow
-      const cx = viewport.width / 2;
-      const cy = viewport.height / 2 + 5;
-      const r = 10;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, -Math.PI * 0.8, Math.PI * 0.6);
-      ctx.strokeStyle = colors.fg;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      const tipX = cx + r * Math.cos(Math.PI * 0.6);
-      const tipY = cy + r * Math.sin(Math.PI * 0.6);
-      ctx.beginPath();
-      ctx.moveTo(tipX - 4, tipY - 4);
-      ctx.lineTo(tipX, tipY);
-      ctx.lineTo(tipX + 4, tipY - 2);
-      ctx.strokeStyle = colors.fg;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      // Restart icon
+      if (restartIcon.complete && restartIcon.naturalWidth > 0) {
+        const iconW = 26;
+        const iconH = 28;
+        ctx.drawImage(restartIcon, viewport.width / 2 - iconW / 2, viewport.height / 2 - 2, iconW, iconH);
+      }
     }
   }
 }

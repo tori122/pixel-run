@@ -18,6 +18,9 @@ import { Intro } from "./Intro.js";
 import { DeathAnimation } from "./DeathAnimation.js";
 import { HappyEnding } from "./HappyEnding.js";
 
+const restartIcon = new Image();
+restartIcon.src = "assets/icons/restart.svg";
+
 const State = {
   LOADING: "loading",
   INTRO: "intro",
@@ -484,24 +487,12 @@ class Game {
       ctx.textAlign = "center";
       ctx.fillText("Game Over", viewport.width / 2, viewport.height / 2 - 15);
 
-      // Restart icon — circular arrow
-      const cx = viewport.width / 2;
-      const cy = viewport.height / 2 + 12;
-      const r = 10;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, -Math.PI * 0.8, Math.PI * 0.6);
-      ctx.strokeStyle = colors.fg;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      const tipX = cx + r * Math.cos(Math.PI * 0.6);
-      const tipY = cy + r * Math.sin(Math.PI * 0.6);
-      ctx.beginPath();
-      ctx.moveTo(tipX - 4, tipY - 4);
-      ctx.lineTo(tipX, tipY);
-      ctx.lineTo(tipX + 4, tipY - 2);
-      ctx.strokeStyle = colors.fg;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      // Restart icon
+      if (restartIcon.complete && restartIcon.naturalWidth > 0) {
+        const iconW = 26;
+        const iconH = 28;
+        ctx.drawImage(restartIcon, viewport.width / 2 - iconW / 2, viewport.height / 2 + 2, iconW, iconH);
+      }
     }
   }
 
