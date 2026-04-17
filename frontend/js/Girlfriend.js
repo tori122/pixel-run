@@ -7,8 +7,8 @@ export class Girlfriend {
     const config = spriteLoader.getConfig();
     const gfConfig = config?.girlfriend;
 
-    this.width = gfConfig?.size?.w || 35;
-    this.height = gfConfig?.size?.h || 38;
+    this.width = gfConfig?.size?.w || 49;
+    this.height = gfConfig?.size?.h || 53;
 
     this.x = 0;
     this.y = viewport.groundY;

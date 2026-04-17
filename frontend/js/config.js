@@ -8,11 +8,11 @@ export const viewport = {
   scale: 1,
   get groundY() { return this.height - 30; },
 };
-export const GRAVITY = 0.6;
-export const JUMP_VELOCITY = -11.5;
+export const GRAVITY = 0.84;
+export const JUMP_VELOCITY = -16.1;
 export const INITIAL_SPEED = 3;
 export const MAX_SPEED = 10;
 export const SPEED_INCREMENT = 0.001;
-export const MIN_OBSTACLE_GAP = 90;
+export const MIN_OBSTACLE_GAP = 126;
 export const NIGHT_CYCLE_SCORE = 3500;
 export const NIGHT_TRANSITION_FRAMES = 60;

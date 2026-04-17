@@ -14,18 +14,18 @@ export class Obstacle {
 
     if (type === 'flying') {
       const flyConfig = config?.flyingObstacles?.[0];
-      this.width = flyConfig?.size?.w || 84;
-      this.height = flyConfig?.size?.h || 60;
-      const heights = [viewport.groundY, viewport.groundY - 30, viewport.groundY - 55];
+      this.width = flyConfig?.size?.w || 118;
+      this.height = flyConfig?.size?.h || 84;
+      const heights = [viewport.groundY, viewport.groundY - 42, viewport.groundY - 77];
       this.y = heights[Math.floor(Math.random() * heights.length)];
-      this._hitboxConfig = flyConfig?.hitbox || { x: 2, y: 2, w: 80, h: 56 };
+      this._hitboxConfig = flyConfig?.hitbox || { x: 3, y: 3, w: 112, h: 78 };
       this._spriteKeys = ['obstacle-fly-1', 'obstacle-fly-2'];
     } else {
       const obsConfig = config?.obstacles?.find((o) => o.type === type);
-      this.width = obsConfig?.size?.w || 50;
-      this.height = obsConfig?.size?.h || 96;
+      this.width = obsConfig?.size?.w || 70;
+      this.height = obsConfig?.size?.h || 134;
       this.y = viewport.groundY;
-      this._hitboxConfig = obsConfig?.hitbox || { x: 2, y: 0, w: this.width - 4, h: this.height };
+      this._hitboxConfig = obsConfig?.hitbox || { x: 3, y: 0, w: this.width - 6, h: this.height };
       const sprites = obsConfig?.sprites || [];
       this._spriteKeys = sprites.map((s) => s.replace(/\.\w+$/, ''));
     }

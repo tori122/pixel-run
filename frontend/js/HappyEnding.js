@@ -59,8 +59,8 @@ export class HappyEnding {
       case Phase.GIRLFRIEND_ENTER:
         // 여친 쥐가 오른쪽에서 들어옴
         this.girlfriend.x -= GF_ENTER_SPEED;
-        if (this.girlfriend.x <= this.meetX + 40) {
-          this.girlfriend.x = this.meetX + 40;
+        if (this.girlfriend.x <= this.meetX + 55) {
+          this.girlfriend.x = this.meetX + 55;
           this.phase = Phase.DINO_RUN;
         }
         break;
