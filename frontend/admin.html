@@ -52,7 +52,14 @@
       <!-- Sprites Tab -->
       <section id="tab-sprites" class="tab-content hidden">
         <h2>이미지 관리</h2>
-        <div id="sprites-grid"></div>
+        <div id="preview-section">
+          <h3>게임 화면 미리보기</h3>
+          <canvas id="preview-canvas" width="600" height="270"></canvas>
+        </div>
+        <div id="sprites-container"></div>
+        <div id="save-sprites-bar">
+          <button id="save-sprites-btn" disabled>변경사항 저장</button>
+        </div>
       </section>
 
       <!-- Settings Tab -->

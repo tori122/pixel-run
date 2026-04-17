@@ -168,11 +168,46 @@ th {
   background: #fff5f5;
 }
 
-/* Sprites Grid */
-#sprites-grid {
+/* Preview */
+#preview-section {
+  margin-bottom: 24px;
+}
+
+#preview-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+#preview-canvas {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  border: 1px solid #e2e2e2;
+  border-radius: 6px;
+  background: #f7f7f7;
+  image-rendering: pixelated;
+}
+
+/* Sprite Sections */
+.sprite-section {
+  margin-bottom: 24px;
+}
+
+.sprite-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #e2e2e2;
+}
+
+.sprites-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 .sprite-card {
@@ -181,20 +216,32 @@ th {
   border-radius: 8px;
   padding: 12px;
   text-align: center;
+  transition: border-color 0.2s;
+}
+
+.sprite-card.pending {
+  border-color: #d69e2e;
+  background: #fffff0;
+}
+
+.sprite-card .sprite-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: #333;
 }
 
 .sprite-card .sprite-key {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 10px;
   margin-bottom: 8px;
-  color: #555;
+  color: #999;
   word-break: break-all;
 }
 
 .sprite-card img {
   max-width: 100%;
   max-height: 80px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   image-rendering: pixelated;
   background: #e2e2e2;
 }
@@ -208,6 +255,12 @@ th {
   justify-content: center;
   color: #999;
   font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.sprite-card .sprite-size {
+  font-size: 11px;
+  color: #888;
   margin-bottom: 8px;
 }
 
@@ -215,14 +268,20 @@ th {
   display: none;
 }
 
+.sprite-card .sprite-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
 .sprite-card .upload-btn {
-  padding: 6px 12px;
+  padding: 5px 10px;
   background: #333;
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .sprite-card .upload-btn:hover {
@@ -230,14 +289,13 @@ th {
 }
 
 .sprite-card .delete-btn {
-  padding: 6px 12px;
+  padding: 5px 10px;
   background: #e53e3e;
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
-  margin-left: 4px;
+  font-size: 11px;
 }
 
 .sprite-card .delete-btn:hover {
@@ -246,8 +304,39 @@ th {
 
 .sprite-card .upload-status {
   font-size: 11px;
-  margin-top: 4px;
+  margin-top: 6px;
   color: #38a169;
+}
+
+/* Save Bar */
+#save-sprites-bar {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding: 16px 0;
+  text-align: center;
+  border-top: 1px solid #e2e2e2;
+  margin-top: 16px;
+}
+
+#save-sprites-btn {
+  padding: 10px 32px;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#save-sprites-btn:hover:not(:disabled) {
+  background: #555;
+}
+
+#save-sprites-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 /* Settings */
