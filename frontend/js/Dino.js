@@ -80,10 +80,10 @@ export class Dino {
   }
 
   _getSpriteKey() {
-    if (this.happy) return `dino-happy-${this.frame + 1}`;
-    if (this.dead) return `dino-dead-${this.frame + 1}`;
+    if (this.happy) return 'dino-happy-1';
+    if (this.dead) return 'dino-dead-1';
     if (this.ducking) return `dino-duck-${this.frame + 1}`;
-    if (this.jumping) return `dino-jump-${this.frame + 1}`;
+    if (this.jumping) return 'dino-jump-1';
     return `dino-run-${this.frame + 1}`;
   }
 

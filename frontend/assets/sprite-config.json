@@ -3,47 +3,47 @@
   "dino": {
     "run": ["dino-run-1.webp", "dino-run-2.webp"],
     "duck": ["dino-duck-1.webp", "dino-duck-2.webp"],
-    "jump": ["dino-jump-1.webp", "dino-jump-2.webp"],
-    "dead": ["dino-dead-1.webp", "dino-dead-2.webp"],
-    "happyEnding": ["dino-happy-1.webp", "dino-happy-2.webp"],
+    "jump": ["dino-jump-1.webp"],
+    "dead": ["dino-dead-1.webp"],
+    "happyEnding": ["dino-happy-1.webp"],
     "size": { "w": 44, "h": 53 },
     "duckSize": { "w": 59, "h": 34 },
     "hitbox": { "x": 2, "y": 0, "w": 40, "h": 53 },
     "duckHitbox": { "x": 2, "y": 3, "w": 55, "h": 29 }
   },
   "girlfriend": {
-    "idle": ["girlfriend-idle-1.webp", "girlfriend-idle-2.webp"],
-    "happyEnding": ["girlfriend-happy-1.webp", "girlfriend-happy-2.webp"],
+    "idle": ["girlfriend-idle-1.webp"],
+    "happyEnding": ["girlfriend-happy-1.webp"],
     "size": { "w": 44, "h": 53 }
   },
   "obstacles": [
     {
       "type": "obstacle-1",
-      "sprites": ["obstacle-1-1.webp", "obstacle-1-2.webp"],
+      "sprites": ["obstacle-1-1.webp"],
       "size": { "w": 27, "h": 21 },
       "hitbox": { "x": 1, "y": 0, "w": 25, "h": 21 }
     },
     {
       "type": "obstacle-2",
-      "sprites": ["obstacle-2-1.webp", "obstacle-2-2.webp"],
+      "sprites": ["obstacle-2-1.webp"],
       "size": { "w": 60, "h": 21 },
       "hitbox": { "x": 1, "y": 0, "w": 61, "h": 21 }
     },
     {
       "type": "obstacle-3",
-      "sprites": ["obstacle-3-1.webp", "obstacle-3-2.webp"],
+      "sprites": ["obstacle-3-1.webp"],
       "size": { "w": 52, "h": 38 },
       "hitbox": { "x": 2, "y": 0, "w": 48, "h": 38 }
     },
     {
       "type": "obstacle-4",
-      "sprites": ["obstacle-4-1.webp", "obstacle-4-2.webp"],
+      "sprites": ["obstacle-4-1.webp"],
       "size": { "w": 52, "h": 38 },
       "hitbox": { "x": 2, "y": 0, "w": 48, "h": 38 }
     },
     {
       "type": "obstacle-5",
-      "sprites": ["obstacle-5-1.webp", "obstacle-5-2.webp"],
+      "sprites": ["obstacle-5-1.webp"],
       "size": { "w": 52, "h": 38 },
       "hitbox": { "x": 2, "y": 0, "w": 48, "h": 38 }
     }

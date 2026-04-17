@@ -27,8 +27,8 @@ export class Girlfriend {
   }
 
   _getSpriteKey() {
-    if (this.happy) return `girlfriend-happy-${this.frame + 1}`;
-    return `girlfriend-idle-${this.frame + 1}`;
+    if (this.happy) return 'girlfriend-happy-1';
+    return 'girlfriend-idle-1';
   }
 
   _getLabel() {

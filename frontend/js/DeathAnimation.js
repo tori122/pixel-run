@@ -103,7 +103,7 @@ export class DeathAnimation {
 
     // Dino (dead 스프라이트)
     const dinoDrawY = this.dinoY - this.dinoHeight + this.offsetY;
-    const dinoSpriteKey = `dino-dead-${this.frame + 1}`;
+    const dinoSpriteKey = 'dino-dead-1';
     const dinoImg = spriteLoader.getImage(dinoSpriteKey);
     if (dinoImg) {
       ctx.drawImage(dinoImg, this.dinoX, dinoDrawY, this.dinoWidth, this.dinoHeight);
