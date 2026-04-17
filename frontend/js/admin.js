@@ -202,8 +202,9 @@ function loadSprites() {
       <img src="${API_URL}/sprites/${key}" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'">
       <div class="no-image" style="display:none">No Image</div>
       <br>
-      <input type="file" accept="image/webp,image/png" id="file-${key}">
+      <input type="file" accept="image/webp,image/png,image/svg+xml" id="file-${key}">
       <button class="upload-btn" data-key="${key}">업로드</button>
+      <button class="delete-btn" data-key="${key}">삭제</button>
       <div class="upload-status hidden"></div>
     `;
     grid.appendChild(card);
@@ -212,6 +213,9 @@ function loadSprites() {
     const fileInput = card.querySelector('input[type="file"]');
     btn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => uploadSprite(key, fileInput, card));
+
+    const delBtn = card.querySelector('.delete-btn');
+    delBtn.addEventListener('click', () => deleteSprite(key, card));
   });
 }
 
@@ -244,6 +248,27 @@ async function uploadSprite(key, fileInput, card) {
     status.style.color = '#e53e3e';
   }
   fileInput.value = '';
+}
+
+async function deleteSprite(key, card) {
+  if (!confirm(`"${key}" 스프라이트를 삭제하시겠습니까?`)) return;
+
+  const res = await apiCall(`/admin/sprites/${key}`, { method: 'DELETE' });
+  if (res && res.ok) {
+    const img = card.querySelector('img');
+    img.style.display = 'none';
+    card.querySelector('.no-image').style.display = 'inline-flex';
+    const status = card.querySelector('.upload-status');
+    status.textContent = '삭제 완료';
+    status.style.color = '#38a169';
+    status.classList.remove('hidden');
+  } else {
+    const err = res ? await res.json() : { message: '서버 오류' };
+    const status = card.querySelector('.upload-status');
+    status.textContent = `삭제 실패: ${err.message}`;
+    status.style.color = '#e53e3e';
+    status.classList.remove('hidden');
+  }
 }
 
 // --- Settings ---

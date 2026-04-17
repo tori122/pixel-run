@@ -2,7 +2,7 @@ import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { Pool } from 'pg';
 import { PG_POOL } from '../database/database.module';
 
-const ALLOWED_MIME_TYPES = ['image/webp', 'image/png'];
+const ALLOWED_MIME_TYPES = ['image/webp', 'image/png', 'image/svg+xml'];
 
 @Injectable()
 export class SpritesService {
@@ -50,5 +50,13 @@ export class SpritesService {
       [key],
     );
     return result.rows[0] || null;
+  }
+
+  async delete(key: string) {
+    const result = await this.pool.query(
+      'DELETE FROM sprites WHERE key = $1 RETURNING key',
+      [key],
+    );
+    return result.rowCount > 0;
   }
 }

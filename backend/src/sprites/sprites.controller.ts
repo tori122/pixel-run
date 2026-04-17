@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Param,
   Res,
   NotFoundException,
@@ -45,6 +46,16 @@ export class SpritesController {
       throw new NotFoundException(`Sprite "${key}" not found`);
     }
     return meta;
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('admin/sprites/:key')
+  async delete(@Param('key') key: string) {
+    const deleted = await this.spritesService.delete(key);
+    if (!deleted) {
+      throw new NotFoundException(`Sprite "${key}" not found`);
+    }
+    return { message: 'Deleted' };
   }
 
   @Get('sprites/:key')
