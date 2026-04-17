@@ -11,6 +11,7 @@ import { Cloud } from './Cloud.js';
 import { NightMode } from './NightMode.js';
 import { Score } from './Score.js';
 import { Intro } from './Intro.js';
+import { DeathAnimation } from './DeathAnimation.js';
 
 const State = {
   LOADING: 'loading',
@@ -18,6 +19,7 @@ const State = {
   STARTING: 'starting',
   PLAYING: 'playing',
   GAMEOVER: 'gameover',
+  RESTARTING: 'restarting',
   HAPPYENDING: 'happyending',
 };
 
@@ -36,10 +38,10 @@ class Game {
     this.clouds = [];
     this.nightMode = new NightMode();
     this.score = new Score();
+    this.deathAnimation = new DeathAnimation();
     this.speed = INITIAL_SPEED;
     this.obstacleTimer = 0;
     this.cloudTimer = 0;
-    this.gameOverDelay = 0;
 
     // Pre-populate clouds
     for (let i = 0; i < 3; i++) {
@@ -70,7 +72,7 @@ class Game {
         if (this.state === State.INTRO) {
           this.startIntroAnimation();
         } else if (this.state === State.GAMEOVER) {
-          if (this.gameOverDelay <= 0) this.restart();
+          if (this.deathAnimation.isComplete()) this.restart();
         } else if (this.state === State.PLAYING) {
           this.dino.jump();
         }
@@ -145,15 +147,17 @@ class Game {
   }
 
   restart() {
-    this.state = State.PLAYING;
+    this.state = State.RESTARTING;
     this.dino = new Dino();
+    this.dino.x = -50; // 화면 밖에서 시작
     this.obstacles = [];
     this.speed = INITIAL_SPEED;
     this.score = new Score();
+    this.deathAnimation = new DeathAnimation();
     this.obstacleTimer = 0;
     this.ground = new Ground();
     this.nightMode = new NightMode();
-    this.dino.jump();
+    this.restartTargetX = 25; // Dino 기본 위치
   }
 
   spawnObstacle() {
@@ -189,7 +193,19 @@ class Game {
         break;
 
       case State.GAMEOVER:
-        if (this.gameOverDelay > 0) this.gameOverDelay--;
+        this.deathAnimation.update();
+        break;
+
+      case State.RESTARTING:
+        // 캐릭터가 왼쪽에서 달려나오는 연출
+        this.dino.update();
+        this.ground.update(this.speed);
+        this.dino.x += 3;
+        if (this.dino.x >= this.restartTargetX) {
+          this.dino.x = this.restartTargetX;
+          this.state = State.PLAYING;
+          this.dino.jump();
+        }
         break;
 
       case State.HAPPYENDING:
@@ -236,7 +252,7 @@ class Game {
     const dinoHB = this.dino.hitbox;
     for (const obs of this.obstacles) {
       if (checkCollision(dinoHB, obs.hitbox)) {
-        this.gameOver();
+        this.gameOver(obs);
         return;
       }
     }
@@ -244,11 +260,14 @@ class Game {
     // TODO: Step 3-1에서 해피엔딩 트리거 점수 체크 추가
   }
 
-  gameOver() {
+  gameOver(collidedObstacle) {
     this.state = State.GAMEOVER;
+    this.dino.dead = true;
     this.score.save();
-    this.gameOverDelay = 20; // Prevent instant restart
 
+    this.deathAnimation.start(this.dino, collidedObstacle);
+    // 충돌 장애물은 DeathAnimation이 렌더링하므로 목록에서 제거
+    this.obstacles = this.obstacles.filter((o) => o !== collidedObstacle);
   }
 
   draw() {
@@ -280,8 +299,15 @@ class Game {
         break;
 
       case State.GAMEOVER:
-        this.drawPlaying(colors);
         this.drawGameOver(colors);
+        break;
+
+      case State.RESTARTING:
+        this.nightMode.draw(ctx, colors.fg);
+        for (const cloud of this.clouds) cloud.draw(ctx, colors.cloudFg);
+        this.ground.draw(ctx, colors.fg);
+        this.dino.draw(ctx, colors.fg);
+        this.score.draw(ctx, colors.fg);
         break;
 
       case State.HAPPYENDING:
@@ -338,30 +364,43 @@ class Game {
   }
 
   drawGameOver(colors) {
-    ctx.fillStyle = colors.fg;
-    ctx.font = 'bold 14px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('G A M E  O V E R', viewport.width / 2, viewport.height / 2 - 15);
+    // 배경 요소 (정지 상태로 그리기)
+    this.nightMode.draw(ctx, colors.fg);
+    for (const cloud of this.clouds) cloud.draw(ctx, colors.cloudFg);
+    this.ground.draw(ctx, colors.fg);
 
-    // Restart icon — circular arrow via canvas arcs
-    const cx = viewport.width / 2;
-    const cy = viewport.height / 2 + 12;
-    const r = 10;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, -Math.PI * 0.8, Math.PI * 0.6);
-    ctx.strokeStyle = colors.fg;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    // Arrow tip
-    const tipX = cx + r * Math.cos(Math.PI * 0.6);
-    const tipY = cy + r * Math.sin(Math.PI * 0.6);
-    ctx.beginPath();
-    ctx.moveTo(tipX - 4, tipY - 4);
-    ctx.lineTo(tipX, tipY);
-    ctx.lineTo(tipX + 4, tipY - 2);
-    ctx.strokeStyle = colors.fg;
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    for (const obs of this.obstacles) obs.draw(ctx, colors.fg);
+    this.score.draw(ctx, colors.fg);
+
+    if (!this.deathAnimation.isComplete()) {
+      // 사망 애니메이션이 캐릭터+장애물을 그림
+      this.deathAnimation.draw(ctx);
+    } else {
+      // 애니메이션 완료 → Game Over 텍스트 + ↻ 아이콘
+      ctx.fillStyle = colors.fg;
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('G A M E  O V E R', viewport.width / 2, viewport.height / 2 - 15);
+
+      // Restart icon — circular arrow
+      const cx = viewport.width / 2;
+      const cy = viewport.height / 2 + 12;
+      const r = 10;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, -Math.PI * 0.8, Math.PI * 0.6);
+      ctx.strokeStyle = colors.fg;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      const tipX = cx + r * Math.cos(Math.PI * 0.6);
+      const tipY = cy + r * Math.sin(Math.PI * 0.6);
+      ctx.beginPath();
+      ctx.moveTo(tipX - 4, tipY - 4);
+      ctx.lineTo(tipX, tipY);
+      ctx.lineTo(tipX + 4, tipY - 2);
+      ctx.strokeStyle = colors.fg;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
 
   loop() {
